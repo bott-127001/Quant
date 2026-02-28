@@ -80,7 +80,7 @@ function Settings() {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+          <div className="settings-grid">
             {/* Continuation Sniper Settings */}
             <div>
               <h4 style={{ color: 'var(--text-primary)', marginBottom: '16px', fontSize: '1rem' }}>Continuation Sniper (09:20 AM)</h4>

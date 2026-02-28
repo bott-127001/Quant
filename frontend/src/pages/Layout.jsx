@@ -3,7 +3,7 @@ import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useData } from './DataContext';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
-import { Activity, LogOut, Key, ShieldCheck, ShieldAlert, Cpu } from 'lucide-react';
+import { Activity, LogOut, Key, ShieldCheck, ShieldAlert, Cpu, Menu, X } from 'lucide-react';
 
 function Layout() {
   const { data, connected } = useData();
@@ -74,14 +74,18 @@ function Layout() {
 
   return (
     <div className="layout-container">
-      {/* Top Application Navbar */}
       <nav className="top-navbar">
         <div className="nav-brand">
-          <Cpu className="brand-icon" size={24} />
-          <h1>Elite 10 Quant System</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Cpu className="brand-icon" size={24} />
+            <h1>Elite 10 Quant System</h1>
+          </div>
+          <button className="mobile-menu-btn" onClick={toggleMenu}>
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
 
-        <div className="nav-controls">
+        <div className={`nav-controls ${isMenuOpen ? 'open' : ''}`}>
           {/* Gravity Badge */}
           <div className={`nav-badge gravity-badge ${Math.abs(index_status?.gap || 0) < 1.0 ? 'safe' : 'restricted'}`}>
             {Math.abs(index_status?.gap || 0) < 1.0 ? (
