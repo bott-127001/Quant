@@ -1,0 +1,388 @@
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
+import uvicorn
+from contextlib import asynccontextmanager
+import asyncio
+from typing import Dict, List
+import json
+from datetime import datetime, timezone
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv() 
+
+from auth import auth_router, get_frontend_user_from_token_async
+from database import init_db, get_user_settings, update_user_settings
+from ws_manager import manager # Import the shared manager instance
+from data_fetcher import start_polling, stop_polling, get_latest_data, get_current_authenticated_user, clear_daily_baseline
+
+
+
+
+import os
+
+def _is_main_worker():
+    """Check if this is the main worker process (first worker)"""
+    # Use a file-based lock to ensure only one worker starts background tasks
+    # This works across multiple gunicorn workers
+    lock_file = "/tmp/background_tasks.lock"
+    
+    try:
+        import fcntl
+        # Try to acquire an exclusive lock (non-blocking)
+        lock_fd = os.open(lock_file, os.O_CREAT | os.O_WRONLY)
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            # We got the lock, this is the main worker
+            return True
+        except (IOError, OSError):
+            # Lock is held by another process
+            os.close(lock_fd)
+            return False
+    except (ImportError, OSError):
+        # fcntl not available (Windows) or file operations failed
+        # Fallback: check environment variable set by first worker
+        if os.getenv("BACKGROUND_TASKS_STARTED") == "1":
+            return False
+        os.environ["BACKGROUND_TASKS_STARTED"] = "1"
+        return True
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await init_db()
+    
+    # Only start background tasks in one worker to avoid duplicates
+    is_main = _is_main_worker()
+    
+    if is_main:
+        print("Database initialized")
+        print("Backend server ready. Polling will start automatically when a user authenticates.")
+        
+        # Start background polling task (will wait for authentication)
+        start_polling() # The worker will use the global manager
+        
+        # Start automated token refresh scheduler (runs daily at 9:15 AM IST)
+        from auto_auth import daily_token_refresh_scheduler
+        token_refresh_task = asyncio.create_task(daily_token_refresh_scheduler())
+        
+        # Start automated token cleanup scheduler (runs daily at 3:00 AM IST)
+        # Note: Full daily cleanup is now manual-only via Settings page
+        from daily_cleanup import token_cleanup_scheduler
+        token_cleanup_task = asyncio.create_task(token_cleanup_scheduler())
+        
+        # Start Elite 10 daily selection scheduler (09:00 AM and 16:30 PM)
+        from elite_scheduler import start_scheduler
+        # We default to matching with the main automation account
+        elite_scheduler_task = asyncio.create_task(start_scheduler("samarth"))
+    else:
+        # This is a duplicate worker, just initialize DB
+        print("Database initialized (worker process)")
+        token_refresh_task = None
+        token_cleanup_task = None
+        elite_scheduler_task = None
+    
+    yield
+    
+    # Shutdown
+    if token_refresh_task is not None and token_cleanup_task is not None:
+        await stop_polling()
+        token_refresh_task.cancel()
+        token_cleanup_task.cancel()
+        if elite_scheduler_task is not None:
+            elite_scheduler_task.cancel()
+        try:
+            await token_refresh_task
+            await token_cleanup_task
+            if elite_scheduler_task is not None:
+                await elite_scheduler_task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(lifespan=lifespan)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include auth router
+app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    try:
+        await manager.connect(websocket)
+        
+        # Send initial data on connection
+        latest_data = get_latest_data()
+        if latest_data:
+            try:
+                await websocket.send_json(latest_data)
+            except:
+                # Connection closed immediately, exit
+                manager.disconnect(websocket)
+                return
+        
+        # Keep connection alive
+        while True:
+            try:
+                message = await asyncio.wait_for(websocket.receive_text(), timeout=60.0)
+                
+                # Handle ping messages
+                try:
+                    data = json.loads(message)
+                    if data.get("type") == "ping":
+                        manager.update_ping(websocket)  # Update ping timestamp
+                        await websocket.send_json({"type": "pong"})
+                except:
+                    pass
+                    
+            except asyncio.TimeoutError:
+                # Send ping to keep alive
+                try:
+                    await websocket.send_json({"type": "ping"})
+                except (WebSocketDisconnect, RuntimeError):
+                    break
+            except WebSocketDisconnect:
+                break
+    except WebSocketDisconnect:
+        pass  # Normal disconnection
+    except Exception as e:
+        print(f"WS error: {e}")
+    finally:
+        try:
+            manager.disconnect(websocket)
+        except:
+            pass
+
+
+@app.get("/api/auth/current-user")
+async def get_current_user():
+    """
+    Returns the currently authenticated user, if any.
+    """
+    user = await get_current_authenticated_user()
+    return JSONResponse(content={"user": user})
+
+
+@app.post("/api/reset-baseline")
+async def reset_baseline():
+    """
+    Manually clears the baseline greeks for the current user and the current day
+    from the database, forcing a recapture on the next poll.
+    """
+    user = await get_current_authenticated_user()
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    await clear_daily_baseline(user, today_str) # Add await here
+    return {"message": "Baseline greeks for today have been cleared. A new baseline will be captured on the next data poll."}
+
+
+@app.get("/api/settings/{user}")
+async def get_settings(user: str):
+    """Get user settings"""
+    settings = await get_user_settings(user)
+    # If no settings are found for the user, return a default structure.
+    # This prevents a 500 error for new users who haven't saved settings yet.
+    if not settings:
+        return {
+            "irs_threshold": 0.45,
+            "relvol_threshold": 1.3,
+            "gap_threshold": 0.8,
+            "index_gravity_threshold": 1.0,
+            "adr_threshold": 80,
+            "reversal_irs_threshold": 1.0,
+            "reversal_gap_threshold": 0.5,
+            "consecutive_confirmations": 1,
+            "trailing_trigger_pct": 1.0,
+        }
+    
+    # Convert ObjectId to string to avoid JSON serialization error
+    if "_id" in settings:
+        settings["_id"] = str(settings["_id"])
+        
+    return settings
+
+
+@app.put("/api/settings/{user}")
+async def update_settings(user: str, settings: dict):
+    """Update user settings"""
+    updated = await update_user_settings(user, settings)
+    if not updated:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Convert ObjectId to string to avoid JSON serialization error
+    if "_id" in updated:
+        updated["_id"] = str(updated["_id"])
+        
+    return {"message": "Settings updated", "settings": updated}
+
+
+
+
+
+@app.api_route("/health-check", methods=["GET", "HEAD"])
+async def health_check(request: Request):
+    """
+    Endpoint for uptime monitoring to prevent the service from spinning down.
+    This endpoint is publicly accessible (no authentication required) and supports both GET and HEAD requests.
+    HEAD requests return a 200 status with no body, which is required for UptimeRobot monitoring.
+    """
+    # print("Health check ping received.")  # Good for debugging
+    response_data = {"status": "ok", "timestamp": datetime.now().isoformat()}
+    
+    # For HEAD requests, return response with no body (status 200)
+    # This is required for proper HTTP HEAD request handling
+    if request.method == "HEAD":
+        return Response(status_code=200)
+    
+    # For GET requests, return JSON response
+    return response_data
+
+
+
+
+
+@app.delete("/api/clear-data")
+async def clear_market_data():
+    """
+    Manual trigger for daily cleanup tasks.
+    Performs:
+    1. Clear daily_baselines from database
+    2. Clear market_data_log collection
+    3. Reset in-memory state (baseline_greeks, price_history, latest_data)
+    
+    NOTE: Does NOT null out tokens (use /api/clear-tokens endpoint for that).
+    """
+    user = await get_current_authenticated_user()
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    from database import market_data_log_collection, db
+    from daily_cleanup import clear_daily_baselines, reset_in_memory_state
+    
+    results = {}
+    
+    try:
+        # Step 1: Clear daily_baselines
+        baseline_count = await clear_daily_baselines()
+        results["baselines_cleared"] = baseline_count
+        
+        # Step 2: Clear market_data_log
+        market_data_result = await market_data_log_collection.delete_many({})
+        results["market_data_cleared"] = market_data_result.deleted_count
+        
+        # Step 3: Reset in-memory state
+        await reset_in_memory_state()
+        results["in_memory_reset"] = True
+        
+        return {
+            "message": "Daily cleanup tasks completed successfully",
+            "results": results
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during cleanup: {str(e)}")
+
+
+@app.delete("/api/clear-tokens")
+async def clear_tokens():
+    """
+    Manual trigger to clear access tokens for all users.
+    This nulls out access_token, refresh_token, and token_expires_at.
+    
+    NOTE: Tokens are also automatically cleared at 3 AM IST daily.
+    This endpoint provides a manual trigger option.
+    """
+    user = await get_current_authenticated_user()
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    from daily_cleanup import null_out_tokens
+    
+    try:
+        users_modified = await null_out_tokens()
+        return {
+            "message": f"Access tokens cleared for {users_modified} users",
+            "users_modified": users_modified
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error clearing tokens: {str(e)}")
+
+
+@app.post("/api/fetch-previous-day-data")
+async def fetch_previous_day_data(request: Request):
+    """
+    Manually trigger fetch of previous day's OHLC data for the current frontend user.
+    Uses Upstox Historical Candle Data V3 under the hood and stores values in user settings.
+    """
+    # Frontend authentication via session token
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    session_token = auth_header.split("Bearer ")[1]
+    username = await get_frontend_user_from_token_async(session_token)
+    if not username:
+        raise HTTPException(status_code=401, detail="Invalid session")
+
+    # Fetch and store previous-day data
+    from data_fetcher import fetch_and_store_previous_day_data
+
+    ohlc = await fetch_and_store_previous_day_data(username)
+    if not ohlc:
+        raise HTTPException(status_code=500, detail="Failed to fetch previous-day data from Upstox")
+
+    return {
+        "success": True,
+        "username": username,
+        "prev_day_close": ohlc["close"],
+        "prev_day_high": ohlc["high"],
+        "prev_day_low": ohlc["low"],
+        "prev_day_range": ohlc["range"],
+        "prev_day_date": ohlc["date"],
+    }
+
+
+# --- Static Files and Catch-all ---
+# This section must come AFTER all other API routes
+
+@app.get("/api")
+async def root():
+    """Root API endpoint"""
+    return {
+        "message": "NIFTY50 Elite 10 Quant Trading System API",
+        "status": "running",
+    }
+
+# Mount the 'assets' directory from within 'static' to serve JS, CSS, etc.
+# This path must match the base path in your frontend build config (Vite)
+app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+
+# The catch-all route to handle client-side routing (e.g., /dashboard, /settings)
+# This must be the LAST route defined.
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    """Serve the React index.html for any path not caught by an API endpoint."""
+    from fastapi.responses import FileResponse
+    return FileResponse('static/index.html')
+
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    print("\n" + "="*70)
+    print("STARTING BACKEND SERVER")
+    print("="*70)
+    print(f"Server will start on: http://0.0.0.0:{port}")
+    print("="*70 + "\n")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
