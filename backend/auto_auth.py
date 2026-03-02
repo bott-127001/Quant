@@ -119,16 +119,14 @@ async def _do_oauth_login(user: str) -> Optional[str]:
         print(f"ERROR: Upstox login credentials not configured for {user}")
         return None
     
-    # Setup Chrome with visible window for debugging
+    # Setup Chrome for headless execution (Required for Render)
     chrome_options = Options()
-    # chrome_options.add_argument("--headless=new") # Disabled for debugging
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1280,720")
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-    
-    # chrome_options.add_argument("--headless") # Disabled for debugging
     
     driver = None
     try:
