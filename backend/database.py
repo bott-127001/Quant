@@ -71,22 +71,15 @@ async def init_db():
     # Initialize default settings for known users
     for user in ["samarth", "prajwal"]:
         default_settings = {
-            "delta_threshold": 0.20,
-            "vega_threshold": 0.10,
-            "theta_threshold": 0.02,
-            "gamma_threshold": 0.01,
-            "consecutive_confirmations": 2,
-            "vol_rv_ratio_contraction_threshold": 0.8,
-            "vol_rv_ratio_expansion_threshold": 1.5,
-            "vol_min_rv_ratio_acceleration": 0.05,
-            # Direction & Asymmetry thresholds
-            "dir_gap_acceptance_threshold": 0.65,
-            "dir_acceptance_neutral_threshold": 0.5,
-            "dir_rea_bull_threshold": 0.3,
-            "dir_rea_bear_threshold": -0.3,
-            "dir_rea_neutral_abs_threshold": 0.3,
-            "dir_de_directional_threshold": 0.5,
-            "dir_de_neutral_threshold": 0.3,
+            "irs_threshold": 0.45,
+            "relvol_threshold": 1.3,
+            "gap_threshold": 0.8,
+            "adr_threshold": 80,
+            "consecutive_confirmations": 1,
+            "trailing_trigger_pct": 1.0,
+            "index_gravity_threshold": 1.0,
+            "reversal_irs_threshold": 1.0,
+            "reversal_gap_threshold": 0.5
         }
         await settings_collection.update_one(
             {"username": user},
@@ -185,23 +178,8 @@ async def get_user_settings(username: str) -> Optional[Dict]:
 async def update_user_settings(username: str, settings: Dict) -> Optional[Dict]:
     """Update user settings."""
     # Fields that should be updated (excluding prev_day fields which are handled separately)
+    # Fields for the Elite 10 Quant System
     regular_fields = {
-        "delta_threshold": settings.get("delta_threshold"),
-        "vega_threshold": settings.get("vega_threshold"),
-        "theta_threshold": settings.get("theta_threshold"),
-        "gamma_threshold": settings.get("gamma_threshold"),
-        "consecutive_confirmations": settings.get("consecutive_confirmations"),
-        "vol_rv_ratio_contraction_threshold": settings.get("vol_rv_ratio_contraction_threshold"),
-        "vol_rv_ratio_expansion_threshold": settings.get("vol_rv_ratio_expansion_threshold"),
-        "vol_min_rv_ratio_acceleration": settings.get("vol_min_rv_ratio_acceleration"),
-        "dir_gap_acceptance_threshold": settings.get("dir_gap_acceptance_threshold"),
-        "dir_acceptance_neutral_threshold": settings.get("dir_acceptance_neutral_threshold"),
-        "dir_rea_bull_threshold": settings.get("dir_rea_bull_threshold"),
-        "dir_rea_bear_threshold": settings.get("dir_rea_bear_threshold"),
-        "dir_rea_neutral_abs_threshold": settings.get("dir_rea_neutral_abs_threshold"),
-        "dir_de_directional_threshold": settings.get("dir_de_directional_threshold"),
-        "dir_de_neutral_threshold": settings.get("dir_de_neutral_threshold"),
-        # New Quant System Settings
         "irs_threshold": settings.get("irs_threshold"),
         "relvol_threshold": settings.get("relvol_threshold"),
         "gap_threshold": settings.get("gap_threshold"),
@@ -209,6 +187,8 @@ async def update_user_settings(username: str, settings: Dict) -> Optional[Dict]:
         "adr_threshold": settings.get("adr_threshold"),
         "reversal_irs_threshold": settings.get("reversal_irs_threshold"),
         "reversal_gap_threshold": settings.get("reversal_gap_threshold"),
+        "consecutive_confirmations": settings.get("consecutive_confirmations"),
+        "trailing_trigger_pct": settings.get("trailing_trigger_pct"),
     }
     # Filter out None values for regular fields
     update_data = {k: v for k, v in regular_fields.items() if v is not None}
@@ -236,33 +216,23 @@ async def log_market_data(data: dict):
 
     log_entry = {
         "timestamp": datetime.fromisoformat(data.get('timestamp')),
-        "underlying_price": data.get('underlying_price'),
-        "atm_strike": data.get('atm_strike'),
-        "expiry_date": data.get('expiry_date'),
-        "aggregated_greeks": data.get("aggregated_greeks", {}),
-        "baseline_greeks": data.get("baseline_greeks", {}),
-        "change_from_baseline": data.get("change_from_baseline", {}),
-        "signals": data.get("signals", []),
-        "volatility_metrics": data.get("volatility_metrics", {}),
-        "direction_metrics": data.get("direction_metrics", {}),
-        "option_count": data.get("option_count", 0)
+        "elite_10": data.get("elite_10", []),
+        "nifty_50": data.get("nifty_50", {}),
+        "elite_signals": data.get("elite_signals", []),
+        "message": data.get("message")
     }
     await market_data_log_collection.insert_one(log_entry)
 
-async def log_signal(username: str, position: str, strike_price: float, strike_ltp: float,
-               delta: float, vega: float, theta: float, gamma: float, raw_chain: dict):
-    """Log a detected signal."""
+async def log_signal(username: str, signal_type: str, price: float, ltp: float,
+               p1: float, p2: float, p3: float, p4: float, signal_details: dict):
+    """Log a detected signal (parameters p1-p4 kept for backward compatibility)."""
     log_entry = {
         "timestamp": datetime.utcnow(),
         "username": username,
-        "detected_position": position,
-        "strike_price": strike_price,
-        "strike_ltp": strike_ltp,
-        "delta": delta,
-        "vega": vega,
-        "theta": theta,
-        "gamma": gamma,
-        "raw_option_chain": json.dumps(raw_chain) # Storing as JSON string
+        "signal_type": signal_type,
+        "price": price,
+        "ltp": ltp,
+        "signal_details": signal_details # This contains the rich signal info
     }
     await trade_logs_collection.insert_one(log_entry)
 

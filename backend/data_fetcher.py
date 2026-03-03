@@ -12,6 +12,12 @@ import time
 
 # Global state
 latest_data: Optional[Dict] = None
+# Index related state
+index_data: Dict = {}
+# Cache for volume (9:15 AM candle 5-day average)
+_vol_cache: Dict[str, float] = {}
+# Baseline IRS at 11:00 AM
+_irs_1100_baseline: Dict[str, float] = {}
 polling_active = False
 should_poll = False
 _polling_task: Optional[asyncio.Task] = None
@@ -22,11 +28,15 @@ _last_successful_poll: Optional[datetime] = None
 _adr_cache: Dict[str, float] = {}
 _adr_cache_date: Optional[str] = None
 
+# UPSTOX_INDEX_KEY = "NSE_INDEX|Nifty 50"
+INDEX_KEY = "NSE_INDEX|Nifty 50"
+
 # Upstox API endpoints
 UPSTOX_BASE_URL = "https://api.upstox.com/v2"
 UPSTOX_BASE_URL_V3 = "https://api.upstox.com/v3"
 
 from ws_manager import manager
+from history_manager import calculate_average_adr, calculate_average_volume_915
 
 def get_last_trading_day(current_dt_ist: datetime) -> str:
     """Get the last trading day in YYYY-MM-DD (IST), skipping weekends."""
@@ -70,6 +80,34 @@ async def fetch_previous_day_ohlc(username: str, instrument_key: str, target_dat
         }
     except:
         return None
+
+async def fetch_current_volume_915(username: str, symbol: str) -> float:
+    """Fetch the volume of the 9:15 candle for the current day."""
+    tokens = await get_user_tokens(username)
+    if not tokens or not tokens.get("access_token"):
+        return 0.0
+
+    headers = {
+        "Authorization": f"Bearer {tokens['access_token']}",
+        "Accept": "application/json",
+    }
+    encoded_key = urllib.parse.quote(symbol)
+    url = f"https://api.upstox.com/v2/historical-candle/intraday/{encoded_key}/1minute"
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers)
+        if response.status_code != 200:
+            return 0.0
+        
+        data = response.json()
+        candles = data.get("data", {}).get("candles", [])
+        for candle in candles:
+            if "T09:15:00" in candle[0]:
+                return float(candle[5])
+        return 0.0
+    except:
+        return 0.0
 
 def get_market_open_time(current_time: datetime) -> datetime:
     """Get market open time for the current day (09:15 IST), returned as UTC."""
@@ -150,10 +188,14 @@ async def polling_worker():
         try:
             settings = await get_user_settings(current_user) or {}
             elite_symbols = await get_elite_10(today_str)
+            
             elite_stocks_data = []
+            idx_snapshot = {}
 
             if elite_symbols:
-                keys_str = ",".join(elite_symbols)
+                # 1. Fetch Nifty 50 and Elite 10 in one call
+                all_keys = [INDEX_KEY] + elite_symbols
+                keys_str = ",".join(all_keys)
                 url = f"{UPSTOX_BASE_URL}/market-quote/quotes?instrument_key={keys_str}"
                 headers = {"Accept": "application/json", "Authorization": f"Bearer {tokens['access_token']}"}
                 
@@ -162,32 +204,71 @@ async def polling_worker():
                 
                 if resp.status_code == 200:
                     resp_data = resp.json().get("data", {})
-                    for raw_sym, sym_data in resp_data.items():
-                        actual_key = sym_data.get("instrument_token") or raw_sym.replace(":", "|")
+                    
+                    # Process Index first
+                    raw_idx = resp_data.get(INDEX_KEY, {})
+                    idx_ohlc = raw_idx.get("ohlc", {})
+                    idx_snapshot = {
+                        "ltp": raw_idx.get("last_price", 0),
+                        "open": idx_ohlc.get("open", 0),
+                        "prev_close": idx_ohlc.get("close", 0)
+                    }
+
+                    # Process Stocks
+                    for sym in elite_symbols:
+                        sym_data = resp_data.get(sym, {})
+                        if not sym_data: continue
                         
+                        actual_key = sym_data.get("instrument_token") or sym
+                        
+                        # Cache management for ADR and Volume
                         if _adr_cache_date != today_str:
                             _adr_cache.clear()
+                            _vol_cache.clear()
                             _adr_cache_date = today_str
                             
                         if actual_key not in _adr_cache:
                             _adr_cache[actual_key] = await calculate_average_adr(actual_key, 5)
+                            _vol_cache[actual_key] = await calculate_average_volume_915(current_user, actual_key, 5)
                         
                         ohlc = sym_data.get("ohlc", {})
-                        elite_stocks_data.append({
+                        ltp = sym_data.get("last_price", ohlc.get("close", 0))
+                        
+                        # RelVol calculation
+                        rel_vol = 1.0
+                        avg_915_vol = _vol_cache.get(actual_key, 0)
+                        
+                        if avg_915_vol > 0 and now_ist.time() >= time(9, 16, 0):
+                            # Try to fetch today's 9:15 candle volume
+                            today_915_vol = await fetch_current_volume_915(current_user, actual_key)
+                            if today_915_vol > 0:
+                                rel_vol = today_915_vol / avg_915_vol
+                        
+                        stock_item = {
                             "symbol": actual_key,
-                            "ltp": sym_data.get("last_price", ohlc.get("close", 0)),
+                            "ltp": ltp,
                             "open": ohlc.get("open", 0),
                             "high": ohlc.get("high", 0),
                             "low": ohlc.get("low", 0),
                             "prev_close": ohlc.get("close", 0),
-                            "avg_adr_5d": _adr_cache[actual_key] or 10.0
-                        })
+                            "avg_adr_5d": _adr_cache[actual_key] or 10.0,
+                            "rel_vol": round(rel_vol, 2)
+                        }
+                        
+                        # 11:00 AM Baseline Capture
+                        if time(11, 0, 0) <= now_ist.time() <= time(11, 1, 0):
+                            s_ret = (ltp - stock_item["prev_close"]) / stock_item["prev_close"] if stock_item["prev_close"] else 0
+                            i_ret = (idx_snapshot["ltp"] - idx_snapshot["prev_close"]) / idx_snapshot["prev_close"] if idx_snapshot["prev_close"] else 0
+                            _irs_1100_baseline[actual_key] = s_ret - i_ret
+                        
+                        stock_item["irs_1100"] = _irs_1100_baseline.get(actual_key, 0)
+                        elite_stocks_data.append(stock_item)
 
             # Detect Signals for Elite 1 stock sequence
             elite_signals = await detect_elite_signals(
                 current_time=now_ist,
                 elite_stocks_data=elite_stocks_data,
-                index_data={}, 
+                index_data=idx_snapshot, 
                 username=current_user,
                 settings=settings
             )
@@ -201,6 +282,7 @@ async def polling_worker():
                 "timestamp": now_utc.isoformat(),
                 "elite_signals": elite_signals,
                 "elite_10": elite_symbols or [],
+                "nifty_50": idx_snapshot,
                 "message": f"Broadcasting Elite 10: {len(elite_symbols)} stocks."
             }
             

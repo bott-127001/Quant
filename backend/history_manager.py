@@ -164,6 +164,52 @@ async def get_stock_returns(symbol: str, days: int = 30) -> List[float]:
     
     return returns
 
+async def calculate_average_volume_915(username: str, symbol: str, days: int = 5) -> float:
+    """
+    Calculate the average volume of the 9:15-9:16 AM candle over the last N trading days.
+    """
+    tokens = await get_user_tokens(username)
+    if not tokens or not tokens.get("access_token"):
+        return 0.0
+
+    headers = {
+        "Authorization": f"Bearer {tokens['access_token']}",
+        "Accept": "application/json",
+    }
+
+    import urllib.parse
+    encoded_key = urllib.parse.quote(symbol)
+    url = f"https://api.upstox.com/v2/historical-candle/intraday/{encoded_key}/1minute"
+    
+    # We only need enough candles to cover 5 trading days. 
+    # Since it's intraday, getting the last few days is enough.
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers)
+        if response.status_code != 200:
+            return 0.0
+        
+        data = response.json()
+        candles = data.get("data", {}).get("candles", [])
+        if not candles:
+            return 0.0
+        
+        # Filter for 09:15:00 candles
+        vol_samples = []
+        for candle in candles:
+            # Format: ["2023-11-01T09:15:00+05:30", open, high, low, close, volume, oi]
+            if "T09:15:00" in candle[0]:
+                vol_samples.append(float(candle[5]))
+            if len(vol_samples) >= days:
+                break
+        
+        if not vol_samples:
+            return 0.0
+            
+        return sum(vol_samples) / len(vol_samples)
+    except:
+        return 0.0
+
 async def calculate_average_adr(symbol: str, days: int = 5) -> float:
     """Calculate the Average Daily Range (High - Low) over N days."""
     data = await get_historical_daily_data(symbol, days)

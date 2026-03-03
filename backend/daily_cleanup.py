@@ -19,17 +19,6 @@ from database import (
     settings_collection
 )
 
-async def clear_daily_baselines():
-    """Clear all daily_baselines from database."""
-    try:
-        result = await db.daily_baselines.delete_many({})
-        print(f"SUCCESS: Cleared {result.deleted_count} daily_baseline entries from database")
-        return result.deleted_count
-    except Exception as e:
-        print(f"ERROR: Error clearing daily_baselines: {str(e)}")
-        return 0
-
-
 async def null_out_tokens():
     """Null out access tokens, refresh tokens, and token_expires_at for all users."""
     try:
@@ -49,58 +38,39 @@ async def null_out_tokens():
         print(f"ERROR: Error nulling out tokens: {str(e)}")
         return 0
 
-
 async def reset_in_memory_state():
     """Reset in-memory state variables in data_fetcher module."""
     try:
-        from data_fetcher import reset_baseline_greeks
         import data_fetcher
         
-        # Reset baseline greeks (this also clears price history)
-        reset_baseline_greeks()
-        
-        # Clear latest data and raw option chain
+        # Clear latest data and snapshots
         data_fetcher.latest_data = None
-        data_fetcher.raw_option_chain = None
+        data_fetcher.index_data = {}
+        data_fetcher._irs_1100_baseline = {}
         
-        print("SUCCESS: Reset in-memory state (baseline_greeks, price_history, latest_data)")
+        print("SUCCESS: Reset in-memory state (latest_data, index_data, baselines)")
     except Exception as e:
         print(f"WARNING: Error resetting in-memory state: {str(e)}")
-        # Don't fail the whole cleanup if this fails
-
 
 async def daily_cleanup_task():
     """
     Main cleanup task that runs at 3 AM IST daily.
-    Exports market data to CSV and performs housekeeping,
-    but does NOT delete market_data_log automatically.
+    Performs housekeeping and token nulling.
     """
     now_utc = datetime.now(timezone.utc)
     now_ist = now_utc + timedelta(hours=5, minutes=30)
-    
-    # Get yesterday's date for the export filename (data collected yesterday)
-    yesterday = (now_ist - timedelta(days=1)).strftime("%Y-%m-%d")
     
     print(f"\n{'='*70}")
     print(f"INFO: Starting daily cleanup at {now_ist.strftime('%Y-%m-%d %H:%M:%S IST')}")
     print(f"{'='*70}")
     
     try:
-        # Step 1: Export market data to CSV (for backup/ML)
-        print(f"\nINFO: Step 1: Exporting market_data_log to CSV...")
-        export_path = await export_market_data_to_csv(yesterday)
-        print(f"   Export saved to: {export_path}")
-        
-        # Step 2: Clear daily_baselines from database
-        print(f"\nINFO: Step 2: Clearing daily_baselines from database...")
-        await clear_daily_baselines()
-        
-        # Step 3: Null out tokens in users collection
-        print(f"\nINFO: Step 3: Nulling out access tokens...")
+        # Step 1: Null out tokens in users collection
+        print(f"\nINFO: Step 1: Nulling out access tokens...")
         await null_out_tokens()
         
-        # Step 4: Reset in-memory state
-        print(f"\nINFO: Step 4: Resetting in-memory state...")
+        # Step 2: Reset in-memory state
+        print(f"\nINFO: Step 2: Resetting in-memory state...")
         await reset_in_memory_state()
         
         print(f"\nSUCCESS: Daily cleanup completed successfully!")

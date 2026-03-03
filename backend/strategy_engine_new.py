@@ -73,16 +73,17 @@ async def detect_elite_signals(
         # TODO: Trigger square-off for all open positions
         return signals
 
-    # Prepare Index Data (Bypassed for Equity-only mode)
+    # Prepare Index Data
     idx_close_prev = index_data.get("prev_close", 0)
     idx_open = index_data.get("open", 0)
     idx_ltp = index_data.get("ltp", 0)
-    idx_gap = 0
-    idx_ret = 0
+    
+    idx_gap = (idx_open - idx_close_prev) / idx_close_prev if idx_close_prev else 0
+    idx_ret = (idx_ltp - idx_close_prev) / idx_close_prev if idx_close_prev else 0
 
     # INDEX GRAVITY RULE
-    # Skipped because user wants purely equity OHLCV checks
-    is_index_heavy = False
+    # If Index Gap > 1.0%, skip all Continuation trades
+    is_index_heavy = abs(idx_gap) > INDEX_GAP
 
     for stock in elite_stocks_data:
         symbol = stock["symbol"]
@@ -94,36 +95,47 @@ async def detect_elite_signals(
         prev_close = stock["prev_close"]
         high = stock.get("high", ltp)
         low = stock.get("low", ltp)
-        vol_915 = stock.get("vol_915", 0)
         
         # Derived metrics
         stock_gap = get_gap_pct(open_price, prev_close)
         stock_ret = (ltp - prev_close) / prev_close if prev_close else 0
-        irs = stock_ret # Use absolute stock return as requested
         
-        # Step 2: 09:20 AM Continuation Sniper (Bypassed time for testing)
+        # IRS = (Stock % Return) - (Nifty 50 % Return)
+        irs = stock_ret - idx_ret
+        
+        rel_vol = stock.get("rel_vol", 1.5) 
+        
+        # Step 2: 09:20 AM Continuation Sniper
+        # Bypassed time for testing (True) - In production use actual time check
         if True: # time(9, 20, 0) <= now_time <= time(9, 25, 0):
-            if (abs(irs) > CONT_IRS and 
-                stock.get("rel_vol", 1.5) > CONT_RELVOL and 
+            if not is_index_heavy and (abs(irs) > CONT_IRS and 
+                rel_vol > CONT_RELVOL and 
                 abs(stock_gap) < CONT_GAP_MAX):
                 
                 irs_dir = 1 if irs > 0 else -1
                 gap_dir = 1 if stock_gap > 0 else -1
                 
-                if irs_dir == gap_dir:
+                # Index Guard: Sign(Index Gap) != -Sign(IRS Direction)
+                idx_gap_dir = 1 if idx_gap > 0 else (-1 if idx_gap < 0 else 0)
+                index_guard_pass = idx_gap_dir != -irs_dir
+                
+                if irs_dir == gap_dir and index_guard_pass:
+                    # ENTRY TRIGGERED
                     direction = "LONG" if irs_dir > 0 else "SHORT"
                     sl = low if direction == "LONG" else high
-                    tp = ltp * (1.02 if direction == "LONG" else 0.98)
+                    tp = ltp * (1.02 if direction == "LONG" else 0.98) # 2.0% TP
+                    trailing_trigger = ltp * (1.01 if direction == "LONG" else 0.99) # +1.0% Trailing
                     
                     signal = {
                         "symbol": symbol,
                         "type": "CONTINUATION",
                         "direction": direction,
-                        "entry_price": ltp,
+                        "entry_price": round(ltp, 2),
                         "sl": round(sl, 2),
                         "tp": round(tp, 2),
+                        "trailing_trigger_price": round(trailing_trigger, 2),
                         "irs": round(irs * 100, 2),
-                        "rel_vol": stock.get("rel_vol", 1.5)
+                        "rel_vol": rel_vol
                     }
                     signals.append(signal)
                     _trades_today[symbol] = "CONTINUATION"
@@ -132,26 +144,36 @@ async def detect_elite_signals(
         # Step 3: 11:30 AM Reversal Income
         if time(11, 30, 0) <= now_time <= time(11, 40, 0):
             adr_coverage = calculate_adr_coverage(high - low, stock.get("avg_adr_5d", 0))
+            
+            # Eligibility: No Continuation trade was taken on this stock today
+            # (Handled by _trades_today check at start of loop)
+            
             if (abs(stock_gap) > REV_GAP and 
                 adr_coverage * 100.0 > REV_ADR and 
                 abs(irs) > REV_IRS):
                 
-                direction = "SHORT" if irs > 0 else "LONG" # Reversal
-                sl = high if direction == "SHORT" else low
-                tp = ltp * (0.98 if direction == "SHORT" else 1.02)
+                # Trigger: IRS Flattening |IRS_11:30| < |IRS_11:00|
+                irs_1130 = irs
+                irs_1100 = stock.get("irs_1100", 0)
                 
-                signal = {
-                    "symbol": symbol,
-                    "type": "REVERSAL",
-                    "direction": direction,
-                    "entry_price": ltp,
-                    "sl": round(sl, 2),
-                    "tp": round(tp, 2),
-                    "irs": round(irs * 100, 2),
-                    "adr_coverage": round(adr_coverage * 100, 2)
-                }
-                signals.append(signal)
-                _trades_today[symbol] = "REVERSAL"
-                await log_signal(username, f"REV_{direction}", ltp, ltp, 0, 0, 0, 0, signal)
+                if abs(irs_1130) < abs(irs_1100):
+                    direction = "SHORT" if irs > 0 else "LONG" # Reversal
+                    # SL: Day's High/Low ± 0.3%
+                    sl = high * 1.003 if direction == "SHORT" else low * 0.997
+                    tp = ltp * (0.99 if direction == "SHORT" else 1.01) # 1.0% TP
+                    
+                    signal = {
+                        "symbol": symbol,
+                        "type": "REVERSAL",
+                        "direction": direction,
+                        "entry_price": round(ltp, 2),
+                        "sl": round(sl, 2),
+                        "tp": round(tp, 2),
+                        "irs": round(irs * 100, 2),
+                        "adr_coverage": round(adr_coverage * 100, 2)
+                    }
+                    signals.append(signal)
+                    _trades_today[symbol] = "REVERSAL"
+                    await log_signal(username, f"REV_{direction}", ltp, ltp, 0, 0, 0, 0, signal)
 
     return signals
