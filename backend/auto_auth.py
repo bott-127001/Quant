@@ -422,18 +422,18 @@ async def daily_token_refresh_scheduler():
             now_ist = now_utc + timedelta(hours=5, minutes=30)
             
             # Target time: 09:10 AM IST (after 09:00 AM Elite 10 selection)
-            target_hour = 9
-            target_minute = 10
+            target_hour = 22
+            target_minute = 12
             
 
             
             # Calculate next refresh time
             if now_ist.hour < target_hour or (now_ist.hour == target_hour and now_ist.minute < target_minute):
                 # Today at 9:15 AM
-                next_refresh = now_ist.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
+                next_refresh = now_ist.replace(hour=target_hour, minute=target_minute, second=35, microsecond=0)
             else:
                 # Tomorrow at 9:15 AM
-                next_refresh = (now_ist + timedelta(days=1)).replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
+                next_refresh = (now_ist + timedelta(days=1)).replace(hour=target_hour, minute=target_minute, second=35, microsecond=0)
             
             # Convert to UTC
             next_refresh_utc = (next_refresh - timedelta(hours=5, minutes=30)).replace(tzinfo=timezone.utc)

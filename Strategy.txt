@@ -1,0 +1,59 @@
+Elite 10 Quant System
+Step 1: The Daily "Elite 10" Selection
+Every morning (or every 15 days for stability), calculate the relationship between all Nifty 50 stocks and the Index using the last 30 trading days of 5-minute data.
+Calculate Returns:
+"Return"=(〖"Price" 〗_t-〖"Price" 〗_(t-1))/〖"Price" 〗_(t-1) 
+for both the Stock and the Nifty 50 Index.
+Calculate Correlation (r): The Pearson correlation coefficient between Stock returns and Index returns. Target the lowest values (independence).
+Calculate Beta (β):
+β="Cov(Stock,Index)" /"Var(Index)" 
+Target the highest values (volatility).
+Ranking: Rank stocks by Beta (highest to lowest) and Correlation (lowest to highest). The Elite 10 are the stocks with the best combined rank.
+Step 2: 09:20 AM Continuation Sniper
+Goal: Capture the most aggressive directional move of the day.
+Morning Thresholds:
+	Intraday Relative Strength (IRS): >0.45%
+	Relative Volume (RelVol): >1.3x
+	Stock Gap: |Gap|<0.80%
+The Alignment Rule:
+	Primary: "Sign (Stock Gap)"=="Sign (IRS Direction)" 
+	Index Guard: "Sign (Index Gap)"≠-"Sign (IRS Direction)"  (The Index must not be gapping against your trade)
+
+
+Execution:
+	Entry: Market order at 09:20:01 AM
+	Stop Loss (SL): Low of the 9:15 candle (for Longs) or High of the 9:15 candle (for Shorts)
+	Take Profit (TP): 2.0% (utilizing the high max potential of these stocks)
+	Trailing: Move SL to Breakeven once the profit hits +1.0%
+Step 3: 11:30 AM Reversal Income
+Goal: Trade the mean-reversion of an overextended stock.
+Exhaustion Thresholds:
+	Eligibility: No Continuation trade was taken on this stock today
+	Gap Requirement: |Gap|>0.50%
+	ADR Coverage: >80%
+	IRS: > 1.0%
+The Trigger:
+	IRS Flattening: |IRS_(11:30) |<|IRS_(11:00) | (Verification that momentum has peaked)
+Execution:
+	Direction: Opposite to the morning trend
+	Stop Loss (SL): Day's High/Low ±0.3%
+	Take Profit (TP): 1.0%
+
+
+
+
+
+
+# The Master Formula Cheat Sheet
+Metric	Formula
+IRS	("Stock \% Return")-("Nifty 50 \% Return")
+RelVol	"Volume of current 9:15 candle" /"Average Volume of 9:15 candle over last 5 days" 
+ADR Coverage	"Current Day's Range (High - Low)" /"Average Daily Range (5-day points)" 
+Gap %	(〖"Open" 〗_today-〖"Close" 〗_prev)/〖"Close" 〗_prev ×100
+
+Table 1: Master Formula Reference Table
+# Essential Risk Rules
+	One Trade Per Stock: Never trade the same symbol twice in one day. Continuation always takes priority over Reversal.
+	Capital Allocation: Divide capital equally across any stocks that trigger simultaneously.
+	The 03:15 Rule: All positions, regardless of profit or loss, MUST be squared off by 03:15 PM. No exceptions.
+	No Trade Zone: If the Nifty 50 Index has a gap >1.0%, skip all Continuation trades as the "Index Gravity" is too high.

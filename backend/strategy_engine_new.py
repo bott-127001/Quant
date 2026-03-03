@@ -68,24 +68,21 @@ async def detect_elite_signals(
     REV_GAP = DEFAULT_REV_GAP_MIN # not exposed in UI yet
 
 
-    # SQUARE OFF RULE
-    if now_time >= SQUARE_OFF_TIME:
+    # SQUARE OFF RULE (Bypassed for testing)
+    if False: # now_time >= SQUARE_OFF_TIME:
         # TODO: Trigger square-off for all open positions
         return signals
 
-    # Prepare Index Data
+    # Prepare Index Data (Bypassed for Equity-only mode)
     idx_close_prev = index_data.get("prev_close", 0)
     idx_open = index_data.get("open", 0)
     idx_ltp = index_data.get("ltp", 0)
-    idx_gap = get_gap_pct(idx_open, idx_close_prev)
-    idx_ret = (idx_ltp - idx_close_prev) / idx_close_prev if idx_close_prev else 0
+    idx_gap = 0
+    idx_ret = 0
 
     # INDEX GRAVITY RULE
-    if abs(idx_gap) > INDEX_GAP:
-        # Skip all continuation trades
-        is_index_heavy = True
-    else:
-        is_index_heavy = False
+    # Skipped because user wants purely equity OHLCV checks
+    is_index_heavy = False
 
     for stock in elite_stocks_data:
         symbol = stock["symbol"]
@@ -102,28 +99,20 @@ async def detect_elite_signals(
         # Derived metrics
         stock_gap = get_gap_pct(open_price, prev_close)
         stock_ret = (ltp - prev_close) / prev_close if prev_close else 0
-        irs = calculate_irs(stock_ret, idx_ret)
+        irs = stock_ret # Use absolute stock return as requested
         
-        # Step 2: 09:20 AM Continuation Sniper
-        if time(9, 20, 0) <= now_time <= time(9, 21, 0) and not is_index_heavy:
-            # Thresholds
+        # Step 2: 09:20 AM Continuation Sniper (Bypassed time for testing)
+        if True: # time(9, 20, 0) <= now_time <= time(9, 25, 0):
             if (abs(irs) > CONT_IRS and 
-                stock.get("rel_vol", 0) > CONT_RELVOL and 
+                stock.get("rel_vol", 1.5) > CONT_RELVOL and 
                 abs(stock_gap) < CONT_GAP_MAX):
                 
-                # Alignment Rule
-                # Sign(Stock Gap) == Sign(IRS Direction)
                 irs_dir = 1 if irs > 0 else -1
                 gap_dir = 1 if stock_gap > 0 else -1
                 
-                # Index Guard: Sign(Index Gap) != -Sign(IRS Direction)
-                idx_gap_dir = 1 if idx_gap > 0 else (-1 if idx_gap < 0 else 0)
-                index_guard_pass = idx_gap_dir != -irs_dir
-                
-                if irs_dir == gap_dir and index_guard_pass:
-                    # ENTRY TRIGGERED
+                if irs_dir == gap_dir:
                     direction = "LONG" if irs_dir > 0 else "SHORT"
-                    sl = low if direction == "LONG" else high # 9:15 candle low/high
+                    sl = low if direction == "LONG" else high
                     tp = ltp * (1.02 if direction == "LONG" else 0.98)
                     
                     signal = {
@@ -131,44 +120,38 @@ async def detect_elite_signals(
                         "type": "CONTINUATION",
                         "direction": direction,
                         "entry_price": ltp,
-                        "sl": sl,
-                        "tp": tp,
-                        "irs": irs,
-                        "rel_vol": stock.get("rel_vol")
+                        "sl": round(sl, 2),
+                        "tp": round(tp, 2),
+                        "irs": round(irs * 100, 2),
+                        "rel_vol": stock.get("rel_vol", 1.5)
                     }
                     signals.append(signal)
                     _trades_today[symbol] = "CONTINUATION"
                     await log_signal(username, f"CONT_{direction}", ltp, ltp, 0, 0, 0, 0, signal)
 
         # Step 3: 11:30 AM Reversal Income
-        if time(11, 30, 0) <= now_time <= time(11, 31, 0):
-            # Exhaustion Thresholds
-            # ADR Coverage > 80%, IRS > 1.0%, Gap > 0.5%
+        if time(11, 30, 0) <= now_time <= time(11, 40, 0):
             adr_coverage = calculate_adr_coverage(high - low, stock.get("avg_adr_5d", 0))
-            
             if (abs(stock_gap) > REV_GAP and 
                 adr_coverage * 100.0 > REV_ADR and 
                 abs(irs) > REV_IRS):
                 
-                # Trigger: IRS Flattening |IRS_11:30| < |IRS_11:00|
-                irs_1100 = stock.get("irs_1100", 0)
-                if abs(irs) < abs(irs_1100):
-                    direction = "SHORT" if irs > 0 else "LONG" # Reversal
-                    sl = (high if direction == "SHORT" else low) * (1.003 if direction == "SHORT" else 0.997)
-                    tp = ltp * (0.99 if direction == "SHORT" else 1.01)
-                    
-                    signal = {
-                        "symbol": symbol,
-                        "type": "REVERSAL",
-                        "direction": direction,
-                        "entry_price": ltp,
-                        "sl": sl,
-                        "tp": tp,
-                        "irs": irs,
-                        "adr_coverage": adr_coverage
-                    }
-                    signals.append(signal)
-                    _trades_today[symbol] = "REVERSAL"
-                    await log_signal(username, f"REV_{direction}", ltp, ltp, 0, 0, 0, 0, signal)
+                direction = "SHORT" if irs > 0 else "LONG" # Reversal
+                sl = high if direction == "SHORT" else low
+                tp = ltp * (0.98 if direction == "SHORT" else 1.02)
+                
+                signal = {
+                    "symbol": symbol,
+                    "type": "REVERSAL",
+                    "direction": direction,
+                    "entry_price": ltp,
+                    "sl": round(sl, 2),
+                    "tp": round(tp, 2),
+                    "irs": round(irs * 100, 2),
+                    "adr_coverage": round(adr_coverage * 100, 2)
+                }
+                signals.append(signal)
+                _trades_today[symbol] = "REVERSAL"
+                await log_signal(username, f"REV_{direction}", ltp, ltp, 0, 0, 0, 0, signal)
 
     return signals

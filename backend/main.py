@@ -16,7 +16,7 @@ load_dotenv()
 from auth import auth_router, get_frontend_user_from_token_async
 from database import init_db, get_user_settings, update_user_settings
 from ws_manager import manager # Import the shared manager instance
-from data_fetcher import start_polling, stop_polling, get_latest_data, get_current_authenticated_user, clear_daily_baseline
+from data_fetcher import start_polling, stop_polling, get_latest_data, get_current_authenticated_user
 
 
 
@@ -174,43 +174,21 @@ async def get_current_user():
     return JSONResponse(content={"user": user})
 
 
-@app.post("/api/reset-baseline")
-async def reset_baseline():
-    """
-    Manually clears the baseline greeks for the current user and the current day
-    from the database, forcing a recapture on the next poll.
-    """
-    user = await get_current_authenticated_user()
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    await clear_daily_baseline(user, today_str) # Add await here
-    return {"message": "Baseline greeks for today have been cleared. A new baseline will be captured on the next data poll."}
-
-
 @app.get("/api/settings/{user}")
 async def get_settings(user: str):
     """Get user settings"""
     settings = await get_user_settings(user)
-    # If no settings are found for the user, return a default structure.
-    # This prevents a 500 error for new users who haven't saved settings yet.
     if not settings:
         return {
             "irs_threshold": 0.45,
             "relvol_threshold": 1.3,
             "gap_threshold": 0.8,
-            "index_gravity_threshold": 1.0,
             "adr_threshold": 80,
-            "reversal_irs_threshold": 1.0,
-            "reversal_gap_threshold": 0.5,
             "consecutive_confirmations": 1,
             "trailing_trigger_pct": 1.0,
         }
-    
-    # Convert ObjectId to string to avoid JSON serialization error
     if "_id" in settings:
         settings["_id"] = str(settings["_id"])
-        
     return settings
 
 
@@ -220,95 +198,32 @@ async def update_settings(user: str, settings: dict):
     updated = await update_user_settings(user, settings)
     if not updated:
         raise HTTPException(status_code=404, detail="User not found")
-        
-    # Convert ObjectId to string to avoid JSON serialization error
     if "_id" in updated:
         updated["_id"] = str(updated["_id"])
-        
     return {"message": "Settings updated", "settings": updated}
-
-
-
 
 
 @app.api_route("/health-check", methods=["GET", "HEAD"])
 async def health_check(request: Request):
     """
-    Endpoint for uptime monitoring to prevent the service from spinning down.
-    This endpoint is publicly accessible (no authentication required) and supports both GET and HEAD requests.
-    HEAD requests return a 200 status with no body, which is required for UptimeRobot monitoring.
+    Endpoint for uptime monitoring.
     """
-    # print("Health check ping received.")  # Good for debugging
     response_data = {"status": "ok", "timestamp": datetime.now().isoformat()}
-    
-    # For HEAD requests, return response with no body (status 200)
-    # This is required for proper HTTP HEAD request handling
     if request.method == "HEAD":
         return Response(status_code=200)
-    
-    # For GET requests, return JSON response
     return response_data
-
-
-
-
-
-@app.delete("/api/clear-data")
-async def clear_market_data():
-    """
-    Manual trigger for daily cleanup tasks.
-    Performs:
-    1. Clear daily_baselines from database
-    2. Clear market_data_log collection
-    3. Reset in-memory state (baseline_greeks, price_history, latest_data)
-    
-    NOTE: Does NOT null out tokens (use /api/clear-tokens endpoint for that).
-    """
-    user = await get_current_authenticated_user()
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    from database import market_data_log_collection, db
-    from daily_cleanup import clear_daily_baselines, reset_in_memory_state
-    
-    results = {}
-    
-    try:
-        # Step 1: Clear daily_baselines
-        baseline_count = await clear_daily_baselines()
-        results["baselines_cleared"] = baseline_count
-        
-        # Step 2: Clear market_data_log
-        market_data_result = await market_data_log_collection.delete_many({})
-        results["market_data_cleared"] = market_data_result.deleted_count
-        
-        # Step 3: Reset in-memory state
-        await reset_in_memory_state()
-        results["in_memory_reset"] = True
-        
-        return {
-            "message": "Daily cleanup tasks completed successfully",
-            "results": results
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error during cleanup: {str(e)}")
 
 
 @app.delete("/api/clear-tokens")
 async def clear_tokens():
     """
     Manual trigger to clear access tokens for all users.
-    This nulls out access_token, refresh_token, and token_expires_at.
-    
-    NOTE: Tokens are also automatically cleared at 3 AM IST daily.
-    This endpoint provides a manual trigger option.
     """
     user = await get_current_authenticated_user()
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     from daily_cleanup import null_out_tokens
-    
     try:
         users_modified = await null_out_tokens()
         return {
@@ -318,39 +233,6 @@ async def clear_tokens():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error clearing tokens: {str(e)}")
 
-
-@app.post("/api/fetch-previous-day-data")
-async def fetch_previous_day_data(request: Request):
-    """
-    Manually trigger fetch of previous day's OHLC data for the current frontend user.
-    Uses Upstox Historical Candle Data V3 under the hood and stores values in user settings.
-    """
-    # Frontend authentication via session token
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    session_token = auth_header.split("Bearer ")[1]
-    username = await get_frontend_user_from_token_async(session_token)
-    if not username:
-        raise HTTPException(status_code=401, detail="Invalid session")
-
-    # Fetch and store previous-day data
-    from data_fetcher import fetch_and_store_previous_day_data
-
-    ohlc = await fetch_and_store_previous_day_data(username)
-    if not ohlc:
-        raise HTTPException(status_code=500, detail="Failed to fetch previous-day data from Upstox")
-
-    return {
-        "success": True,
-        "username": username,
-        "prev_day_close": ohlc["close"],
-        "prev_day_high": ohlc["high"],
-        "prev_day_low": ohlc["low"],
-        "prev_day_range": ohlc["range"],
-        "prev_day_date": ohlc["date"],
-    }
 
 
 # --- Static Files and Catch-all ---

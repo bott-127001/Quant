@@ -32,7 +32,7 @@ def schedule_jobs(username: str):
     """Setup the 09:00 AM IST schedule."""
     # Note: Schedule library works with wall-clock time
     # In a production environment, ensure server time is IST or handle offsets
-    schedule.every().day.at("09:00").do(
+    schedule.every().day.at("22:10:35").do(
         lambda: asyncio.run_coroutine_threadsafe(run_daily_selection(username), asyncio.get_event_loop())
     )
     
