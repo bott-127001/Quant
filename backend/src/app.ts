@@ -54,12 +54,12 @@ const isProduction = process.env.NODE_ENV?.trim().toLowerCase() === 'production'
 if (isProduction) {
     console.log('--- Production Mode Detected: Serving Frontend ---');
     const frontendDist = path.resolve(process.cwd(), 'frontend/dist');
-    
+
     // Serve static files from the frontend dist folder
     app.use(express.static(frontendDist));
 
-    // For any request that doesn't match API, serve index.html (React routing fallback)
-    app.get('*', (req, res) => {
+    // For any request that doesn't match API, serve index.html (Express 5 catch-all syntax)
+    app.get('(.*)', (req, res) => {
         const indexPath = path.join(frontendDist, 'index.html');
         res.sendFile(indexPath);
     });
