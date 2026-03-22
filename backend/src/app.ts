@@ -47,16 +47,24 @@ app.use('/api/auth', authRoutes);
 app.use('/api/market-data', requireDashboardAuth, marketDataRoutes);
 app.use('/api/config', requireDashboardAuth, configRoutes);
 
-// Single Service Deployment: Serve Frontend in Production
-if (process.env.NODE_ENV === 'production') {
-    const frontendDist = path.join(__dirname, '../../frontend/dist');
+// Production detection (case-insensitive and trim whitespace)
+const isProduction = process.env.NODE_ENV?.trim().toLowerCase() === 'production';
+
+// Combined Routing Logic
+if (isProduction) {
+    console.log('--- Production Mode Detected: Serving Frontend ---');
+    const frontendDist = path.resolve(process.cwd(), 'frontend/dist');
+    
+    // Serve static files from the frontend dist folder
     app.use(express.static(frontendDist));
 
-    // For any request that doesn't match API, serve index.html
+    // For any request that doesn't match API, serve index.html (React routing fallback)
     app.get('*', (req, res) => {
-        res.sendFile(path.join(frontendDist, 'index.html'));
+        const indexPath = path.join(frontendDist, 'index.html');
+        res.sendFile(indexPath);
     });
 } else {
+    console.log(`--- Development Mode (${process.env.NODE_ENV}): API Only ---`);
     app.get('/', (req, res) => {
         res.send('Elite 10 Quant System Backend API is running...');
     });
