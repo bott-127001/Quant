@@ -1,0 +1,68 @@
+import express from 'express';
+import path from 'path';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import connectDB from './config/db';
+
+import authRoutes from './routes/authRoutes';
+import marketDataRoutes from './routes/marketDataRoutes';
+import configRoutes from './routes/configRoutes';
+import IntradayService from './services/IntradayService';
+import { requireDashboardAuth } from './middleware/requireDashboardAuth';
+
+import RankingService from './services/RankingService';
+import AuthService from './services/AuthService';
+import MarketDataService from './services/MarketDataService';
+
+dotenv.config();
+
+// Connect to Database
+connectDB().then(() => {
+    console.log('--- Database Connected: Initializing Workstation Schedulers ---');
+
+    // Start automated processes
+    AuthService.startAutomatedLoginScheduler();      // 09:00 AM IST (P2)
+    RankingService.startAutomatedRanking();         // 08:45 AM IST (P4)
+    MarketDataService.startRollingSyncScheduler();  // 04:00 PM IST (P3)
+    IntradayService.startMarketHeartbeat();         // 09:15 AM - 03:30 PM IST (P5-8)
+
+    console.log('Backend Services Initialized.');
+});
+
+const app = express();
+
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+
+// Middlewares
+app.use(cors({
+    origin: FRONTEND_ORIGIN,
+    credentials: true,
+}));
+app.use(express.json());
+app.use(cookieParser());
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/market-data', requireDashboardAuth, marketDataRoutes);
+app.use('/api/config', requireDashboardAuth, configRoutes);
+
+app.get('/', (req, res) => {
+    res.send('Elite 10 Quant System Backend API is running...');
+});
+
+// Single Service Deployment: Serve Frontend in Production
+if (process.env.NODE_ENV === 'production') {
+    const frontendDist = path.join(__dirname, '../../frontend/dist');
+    app.use(express.static(frontendDist));
+
+    app.get('/{*splat}', (req, res) => {
+        res.sendFile(path.join(frontendDist, 'index.html'));
+    });
+}
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+});
