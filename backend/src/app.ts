@@ -59,7 +59,7 @@ if (isProduction) {
     app.use(express.static(frontendDist));
 
     // For any request that doesn't match API, serve index.html (Express 5 catch-all syntax)
-    app.get('(.*)', (req, res) => {
+    app.get('/*splat', (req, res) => {
         const indexPath = path.join(frontendDist, 'index.html');
         res.sendFile(indexPath);
     });
