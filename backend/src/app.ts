@@ -47,17 +47,18 @@ app.use('/api/auth', authRoutes);
 app.use('/api/market-data', requireDashboardAuth, marketDataRoutes);
 app.use('/api/config', requireDashboardAuth, configRoutes);
 
-app.get('/', (req, res) => {
-    res.send('Elite 10 Quant System Backend API is running...');
-});
-
 // Single Service Deployment: Serve Frontend in Production
 if (process.env.NODE_ENV === 'production') {
     const frontendDist = path.join(__dirname, '../../frontend/dist');
     app.use(express.static(frontendDist));
 
-    app.get('/{*splat}', (req, res) => {
+    // For any request that doesn't match API, serve index.html
+    app.get('*', (req, res) => {
         res.sendFile(path.join(frontendDist, 'index.html'));
+    });
+} else {
+    app.get('/', (req, res) => {
+        res.send('Elite 10 Quant System Backend API is running...');
     });
 }
 
