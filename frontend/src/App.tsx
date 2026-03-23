@@ -709,15 +709,15 @@ function App() {
                           placeholder="Filter by stock (symbol)..."
                           value={filterStock}
                           onChange={(e) => setFilterStock(e.target.value)}
-                          className="w-full bg-black/30 border border-border-mid p-3 pl-10 rounded-xl focus:border-brand-primary outline-none"
+                          className="w-full bg-black/30 border border-border-mid p-2 md:p-3 text-xs md:text-sm rounded-xl focus:border-brand-primary outline-none"
                         />
-                        <Activity className="absolute left-4 top-4.5 text-text-tertiary" size={18} />
+                        <Activity className="absolute left-3 top-3.5 md:left-4 md:top-4.5 text-text-tertiary" size={14} />
                       </div>
 
                       <select
                         value={filterTradeType}
                         onChange={(e) => setFilterTradeType(e.target.value as any)}
-                        className="w-full sm:w-52 bg-black/30 border border-border-mid p-3 rounded-xl focus:border-brand-primary outline-none"
+                        className="w-full sm:w-52 bg-black/30 border border-border-mid p-2 md:p-3 text-xs md:text-sm rounded-xl focus:border-brand-primary outline-none"
                       >
                         <option value="ALL">All trade types</option>
                         <option value="CONTINUATION">Continuation</option>
@@ -727,7 +727,7 @@ function App() {
                       <select
                         value={filterOutcome}
                         onChange={(e) => setFilterOutcome(e.target.value as any)}
-                        className="w-full sm:w-40 bg-black/30 border border-border-mid p-3 rounded-xl focus:border-brand-primary outline-none"
+                        className="w-full sm:w-40 bg-black/30 border border-border-mid p-2 md:p-3 text-xs md:text-sm rounded-xl focus:border-brand-primary outline-none"
                       >
                         <option value="ALL">All outcomes</option>
                         <option value="TP">TP hit</option>
@@ -737,7 +737,7 @@ function App() {
                       <select
                         value={sortOption}
                         onChange={(e) => setSortOption(e.target.value as any)}
-                        className="w-full sm:w-56 bg-black/30 border border-border-mid p-3 rounded-xl focus:border-brand-primary outline-none"
+                        className="w-full sm:w-56 bg-black/30 border border-border-mid p-2 md:p-3 text-xs md:text-sm rounded-xl focus:border-brand-primary outline-none"
                       >
                         <option value="NONE">No sorting</option>
                         <option value="TP_DESC">TP: max → low</option>
@@ -771,14 +771,14 @@ function App() {
                       </button>
                     </div>
                   </div>
-                  <div className="flex gap-8 pr-4 mt-4 xl:mt-0">
+                  <div className="flex gap-12 pr-4 mt-6 xl:mt-0 w-full xl:w-auto justify-between md:justify-end">
                     <div className="text-center">
-                      <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-1">Total Signals</p>
-                      <p className="text-3xl font-mono font-bold">{tradeLogs.length}</p>
+                      <p className="text-[9px] md:text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-1">Total Signals</p>
+                      <p className="text-xl md:text-3xl font-mono font-bold">{tradeLogs.length}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-1">Performance</p>
-                      <p className="text-3xl font-mono font-bold text-brand-primary">+8.42%</p>
+                      <p className="text-[9px] md:text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-1">Performance</p>
+                      <p className="text-xl md:text-3xl font-mono font-bold text-brand-primary">+8.42%</p>
                     </div>
                   </div>
                 </div>
