@@ -12,7 +12,10 @@ class RankingService {
         
         // 1. Get Nifty 50 Index Returns (The Benchmark)
         const niftyCandles = await Candle.find({ symbol: 'NIFTY_50' }).sort({ timestamp: 1 }).lean();
-        if (niftyCandles.length < 100) throw new Error('Insufficient Nifty 50 data. Run sync first.');
+        if (niftyCandles.length < 100) {
+            console.error(`--- Insufficient Data: Found ${niftyCandles.length} Nifty candles, need at least 100. ---`);
+            throw new Error(`Insufficient Nifty 50 data (${niftyCandles.length}/100). Please click the main SYNC button and wait for it to finish.`);
+        }
         
         const indexReturns = this.calculateReturns(niftyCandles);
         const niftyTimestamps = niftyCandles.map(c => c.timestamp.getTime());

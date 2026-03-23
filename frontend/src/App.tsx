@@ -67,8 +67,11 @@ const DashboardHeader = ({
               <button onClick={() => onAction('login')} className="action-btn">
                 <Power size={14} /> <span>AUTH</span>
               </button>
-              <button onClick={() => onAction('sync')} className="action-btn">
-                <RefreshCw size={14} /> <span>SYNC</span>
+              <button onClick={() => onAction('sync')} className="action-btn" title="Setup and map symbols (Run once)">
+                <RefreshCw size={14} /> <span>Sync Symbols</span>
+              </button>
+              <button onClick={() => onAction('syncData')} className="action-btn" title="Sync local price data for all symbols">
+                <Activity size={14} /> <span>Sync Data</span>
               </button>
               <button onClick={() => onAction('rank')} className="action-btn action-btn-primary">
                 <Zap size={14} /> <span>Refresh Elite 10</span>
@@ -202,8 +205,18 @@ function App() {
     setIsLoading(true);
     try {
       if (action === 'login') await dashboardService.manualLogin();
-      if (action === 'sync') await dashboardService.manualSync();
-      if (action === 'rank') await dashboardService.calculateRanking();
+      if (action === 'sync') {
+        const res = await dashboardService.manualSync();
+        alert(res);
+      }
+      if (action === 'syncData') {
+        const res = await dashboardService.syncData();
+        alert(res);
+      }
+      if (action === 'rank') {
+        const res = await dashboardService.calculateRanking();
+        alert(res.message);
+      }
       if (action === 'nuke') {
         await configService.nukeAuth();
         alert('Access tokens cleared!');
@@ -292,6 +305,12 @@ function App() {
 
   return (
     <div className={`main-wrapper ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loader-spinner" />
+          <p className="text-[10px] font-mono font-bold tracking-[0.4em] text-brand-primary uppercase animate-pulse">Request Processing</p>
+        </div>
+      )}
       {/* Navigation */}
       <nav className="top-nav-bar desktop-only">
         <div className="nav-pill-container">

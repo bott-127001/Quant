@@ -24,6 +24,10 @@ export const dashboardService = {
         const response = await api.get('/market-data/setup-symbols');
         return response.data;
     },
+    syncData: async () => {
+        const response = await api.get('/market-data/rolling-sync');
+        return response.data;
+    },
     calculateRanking: async () => {
         const response = await api.get('/market-data/calculate-ranking');
         return response.data;
