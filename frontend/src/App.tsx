@@ -38,17 +38,17 @@ interface Elite10Item {
 }
 
 // --- Sub-components ---
-const DashboardHeader = ({ 
-  activeTab, 
-  nifty, 
+const DashboardHeader = ({
+  activeTab,
+  nifty,
   onAction,
   onLogout,
   currentUser,
   isLoading,
   activeAction,
   lastLog
-}: { 
-  activeTab: string; 
+}: {
+  activeTab: string;
   nifty: NiftyData | null;
   onAction: (action: string) => void;
   onLogout: () => void;
@@ -68,53 +68,53 @@ const DashboardHeader = ({
           </h1>
           <p className="text-text-tertiary text-[10px] font-bold tracking-[0.3em] uppercase opacity-60">Elite 10 Quant Workstation • SECURE SESSION</p>
         </div>
-        
+
         <div className="flex flex-col items-end gap-3">
           <div className="flex flex-row flex-wrap items-center gap-2">
             {activeTab === 'dashboard' && (
               <>
-                <button 
-                  onClick={() => onAction('login')} 
+                <button
+                  onClick={() => onAction('login')}
                   disabled={isLoading}
                   className={`action-btn ${activeAction === 'login' ? 'active' : ''} ${isLoading && activeAction !== 'login' ? 'opacity-20 grayscale' : ''}`}
                 >
-                  {activeAction === 'login' ? <Loader2 size={14} className="animate-spin text-brand-primary" /> : <Power size={14} />} 
+                  {activeAction === 'login' ? <Loader2 size={14} className="animate-spin-custom text-brand-primary" /> : <Power size={14} />}
                   <span>AUTH</span>
                 </button>
-                <button 
-                  onClick={() => onAction('sync')} 
+                <button
+                  onClick={() => onAction('sync')}
                   disabled={isLoading}
                   className={`action-btn ${activeAction === 'sync' ? 'active' : ''} ${isLoading && activeAction !== 'sync' ? 'opacity-20 grayscale' : ''}`}
                   title="Setup and map symbols (Run once)"
                 >
-                  {activeAction === 'sync' ? <Loader2 size={14} className="animate-spin text-brand-primary" /> : <RefreshCw size={14} />} 
+                  {activeAction === 'sync' ? <Loader2 size={14} className="animate-spin-custom text-brand-primary" /> : <RefreshCw size={14} />}
                   <span>Sync Symbols</span>
                 </button>
-                <button 
-                  onClick={() => onAction('syncData')} 
+                <button
+                  onClick={() => onAction('syncData')}
                   disabled={isLoading}
                   className={`action-btn ${activeAction === 'syncData' ? 'active' : ''} ${isLoading && activeAction !== 'syncData' ? 'opacity-20 grayscale' : ''}`}
                   title="Sync local price data for all symbols"
                 >
-                  {activeAction === 'syncData' ? <Loader2 size={14} className="animate-spin text-brand-primary" /> : <Activity size={14} />} 
+                  {activeAction === 'syncData' ? <Loader2 size={14} className="animate-spin-custom text-brand-primary" /> : <Activity size={14} />}
                   <span>Sync Data</span>
                 </button>
-                <button 
-                  onClick={() => onAction('rank')} 
+                <button
+                  onClick={() => onAction('rank')}
                   disabled={isLoading}
                   className={`action-btn action-btn-primary ${activeAction === 'rank' ? 'active' : ''} ${isLoading && activeAction !== 'rank' ? 'opacity-20 grayscale' : ''}`}
                 >
-                  {activeAction === 'rank' ? <Loader2 size={14} className="animate-spin text-black" /> : <Zap size={14} />} 
+                  {activeAction === 'rank' ? <Loader2 size={14} className="animate-spin-custom text-black" /> : <Zap size={14} />}
                   <span>Refresh Elite 10</span>
                 </button>
 
                 <div className="h-8 w-px bg-white/5 mx-1" />
 
-                <button 
+                <button
                   onClick={onLogout}
                   className="action-btn text-text-tertiary border-white/5 hover:text-brand-secondary hover:bg-brand-secondary/10"
                 >
-                   <X size={14} /> <span>LOGOUT</span>
+                  <X size={14} /> <span>LOGOUT</span>
                 </button>
               </>
             )}
@@ -135,7 +135,7 @@ const DashboardHeader = ({
           <div className="h-6 flex items-center justify-end w-full">
             <AnimatePresence mode="wait">
               {isLoading && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
@@ -150,7 +150,7 @@ const DashboardHeader = ({
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -15, opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="text-[8px] font-mono font-bold text-brand-primary uppercase truncate absolute inset-0 text-right"
+                        className="text-[8px] font-mono font-bold text-brand-primary uppercase truncate whitespace-nowrap absolute inset-0 text-right"
                       >
                         {lastLog}
                       </motion.p>
@@ -163,14 +163,14 @@ const DashboardHeader = ({
         </div>
       </div>
 
-      
+
       <div className="status-bar">
         <div className="nifty-ticker">
           <Activity className={nifty && nifty.change >= 0 ? 'text-brand-primary' : 'text-brand-secondary'} size={20} />
           <div className="flex flex-col">
             <span className="text-[9px] font-black text-text-tertiary uppercase tracking-widest">NIFTY 50 INDEX</span>
             <span className="font-mono font-bold text-xl leading-none">
-              {nifty ? nifty.ltp.toLocaleString() : '---'} 
+              {nifty ? nifty.ltp.toLocaleString() : '---'}
               <span className={`ml-2 text-sm ${nifty && nifty.change >= 0 ? 'text-brand-primary' : 'text-brand-secondary'}`}>
                 {nifty ? `${nifty.change >= 0 ? '+' : ''}${nifty.change.toFixed(2)}%` : '(0.00%)'}
               </span>
@@ -288,7 +288,7 @@ function App() {
               setLastLog(latest);
             }
           }
-        } catch {}
+        } catch { }
       }, 1000);
     }
     return () => {
@@ -416,7 +416,7 @@ function App() {
       <nav className="top-nav-bar desktop-only">
         <div className="nav-pill-container">
           {(['dashboard', 'settings', 'logs'] as const).map((tab) => (
-            <button 
+            <button
               key={tab}
               onClick={() => {
                 setActiveTab(tab);
@@ -470,10 +470,10 @@ function App() {
       </nav>
 
       {/* Main Header */}
-      <DashboardHeader 
-        activeTab={activeTab} 
-        nifty={dashboardData.nifty} 
-        onAction={handleAction} 
+      <DashboardHeader
+        activeTab={activeTab}
+        nifty={dashboardData.nifty}
+        onAction={handleAction}
         onLogout={handleLogout}
         currentUser={currentUser}
         isLoading={isLoading}
@@ -494,103 +494,103 @@ function App() {
               <div className="content-grid">
                 {/* Active Trading Tickets */}
                 <div className="col-span-4 flex flex-col gap-6">
-                <div className="flex items-center justify-between px-2">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-text-tertiary">Live Signal Stream</h3>
-                  <div className="flex gap-1">
-                    <div className="w-1 h-1 rounded-full bg-brand-primary animate-pulse" />
-                    <div className="w-1 h-1 rounded-full bg-brand-primary/20" />
-                  </div>
-                </div>
-                {dashboardData.signals.length > 0 ? (
-                  dashboardData.signals.map(signal => (
-                    <div key={signal._id} className="pro-card border-l-2 border-l-brand-primary">
-                      <div className="terminal-card-header">
-                        <div className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 shadow-[0_0_8px_rgba(0,245,160,0.4)]" />
-                        <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest">Signal Node :: 0x{signal.symbol.slice(0,3)}</span>
-                      </div>
-                      <div className="p-6">
-                        <div className="flex justify-between items-center mb-6">
-                           <span className={`indicator-tag ${signal.type === 'REVERSAL' ? 'indicator-down' : 'indicator-up'}`}>
-                              {signal.type} {signal.direction}
-                           </span>
-                           <span className="font-mono text-[10px] text-text-tertiary">#EXE_{signal.symbol}</span>
-                        </div>
-                        <div className="flex justify-between items-end mb-8">
-                          <div>
-                            <h2 className="text-3xl font-bold tracking-tighter text-white">{signal.symbol}</h2>
-                            <p className="text-text-tertiary text-xs font-mono mt-1">LTP: <span className="text-text-secondary">{signal.entryPrice.toFixed(2)}</span></p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-text-tertiary text-[9px] uppercase font-black mb-1">IRS_INDEX</p>
-                            <h3 className={`text-2xl font-mono font-bold ${signal.metrics.irs >= 0 ? 'text-brand-primary' : 'text-brand-secondary'}`}>
-                              {signal.metrics.irs >= 0 ? '+' : ''}{signal.metrics.irs.toFixed(2)}%
-                            </h3>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border-dim/50">
-                          <div>
-                            <p className="text-[9px] font-bold text-text-tertiary uppercase mb-1">STOP</p>
-                            <p className="font-mono font-bold text-lg text-brand-secondary">{signal.stopLoss.toFixed(2)}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[9px] font-bold text-text-tertiary uppercase mb-1">TARGET</p>
-                            <p className="font-mono font-bold text-lg text-brand-primary">{signal.takeProfit.toFixed(2)}</p>
-                          </div>
-                        </div>
-                      </div>
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-text-tertiary">Live Signal Stream</h3>
+                    <div className="flex gap-1">
+                      <div className="w-1 h-1 rounded-full bg-brand-primary animate-pulse" />
+                      <div className="w-1 h-1 rounded-full bg-brand-primary/20" />
                     </div>
-                  ))
-                ) : (
-                  <div className="pro-card p-12 flex flex-col items-center justify-center text-center">
-                    <Activity size={32} className="text-text-tertiary mb-4 opacity-10" />
-                    <p className="text-text-tertiary font-bold tracking-widest uppercase text-[10px] opacity-40">System Idle :: Awaiting Signals</p>
                   </div>
-                )}
+                  {dashboardData.signals.length > 0 ? (
+                    dashboardData.signals.map(signal => (
+                      <div key={signal._id} className="pro-card border-l-2 border-l-brand-primary">
+                        <div className="terminal-card-header">
+                          <div className="w-1.5 h-1.5 rounded-full bg-brand-primary/40 shadow-[0_0_8px_rgba(0,245,160,0.4)]" />
+                          <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest">Signal Node :: 0x{signal.symbol.slice(0, 3)}</span>
+                        </div>
+                        <div className="p-6">
+                          <div className="flex justify-between items-center mb-6">
+                            <span className={`indicator-tag ${signal.type === 'REVERSAL' ? 'indicator-down' : 'indicator-up'}`}>
+                              {signal.type} {signal.direction}
+                            </span>
+                            <span className="font-mono text-[10px] text-text-tertiary">#EXE_{signal.symbol}</span>
+                          </div>
+                          <div className="flex justify-between items-end mb-8">
+                            <div>
+                              <h2 className="text-3xl font-bold tracking-tighter text-white">{signal.symbol}</h2>
+                              <p className="text-text-tertiary text-xs font-mono mt-1">LTP: <span className="text-text-secondary">{signal.entryPrice.toFixed(2)}</span></p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-text-tertiary text-[9px] uppercase font-black mb-1">IRS_INDEX</p>
+                              <h3 className={`text-2xl font-mono font-bold ${signal.metrics.irs >= 0 ? 'text-brand-primary' : 'text-brand-secondary'}`}>
+                                {signal.metrics.irs >= 0 ? '+' : ''}{signal.metrics.irs.toFixed(2)}%
+                              </h3>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border-dim/50">
+                            <div>
+                              <p className="text-[9px] font-bold text-text-tertiary uppercase mb-1">STOP</p>
+                              <p className="font-mono font-bold text-lg text-brand-secondary">{signal.stopLoss.toFixed(2)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[9px] font-bold text-text-tertiary uppercase mb-1">TARGET</p>
+                              <p className="font-mono font-bold text-lg text-brand-primary">{signal.takeProfit.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="pro-card p-12 flex flex-col items-center justify-center text-center">
+                      <Activity size={32} className="text-text-tertiary mb-4 opacity-10" />
+                      <p className="text-text-tertiary font-bold tracking-widest uppercase text-[10px] opacity-40">System Idle :: Awaiting Signals</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Main Ranking Terminal */}
                 <div className="col-span-8">
                   <div className="pro-card">
                     <div className="p-6 border-b border-border-dim flex justify-between items-center">
-                       <h3 className="font-bold text-sm uppercase tracking-widest text-text-secondary flex items-center gap-2">
+                      <h3 className="font-bold text-sm uppercase tracking-widest text-text-secondary flex items-center gap-2">
                         <List size={14} className="text-brand-primary" /> Elite 10 Market Matrix
-                       </h3>
-                       <div className="flex gap-2">
-                          <span className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
-                          <span className="text-[10px] font-mono text-text-tertiary uppercase">Live Stream</span>
-                       </div>
+                      </h3>
+                      <div className="flex gap-2">
+                        <span className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
+                        <span className="text-[10px] font-mono text-text-tertiary uppercase">Live Stream</span>
+                      </div>
                     </div>
                     <div className="terminal-table-container">
                       <table className="terminal-table">
                         <thead>
-                           <tr>
-                              <th>Symbol</th>
-                              <th>LTP</th>
-                              <th>IRS%</th>
-                              <th>RelVol</th>
-                              <th>ADR%</th>
-                              <th>Gap%</th>
-                              <th className="text-right">Signal Bias</th>
-                           </tr>
+                          <tr>
+                            <th>Symbol</th>
+                            <th>LTP</th>
+                            <th>IRS%</th>
+                            <th>RelVol</th>
+                            <th>ADR%</th>
+                            <th>Gap%</th>
+                            <th className="text-right">Signal Bias</th>
+                          </tr>
                         </thead>
                         <tbody className="font-mono text-sm">
-                           {dashboardData.elite10.map((item) => (
-                             <tr key={item.symbol}>
-                                <td className="font-bold text-white">{item.symbol}</td>
-                                <td className="text-text-secondary font-bold">{item.ltp.toLocaleString()}</td>
-                                <td className={`font-bold ${item.irs >= 0 ? 'text-brand-primary' : 'text-brand-secondary'}`}>
-                                  {item.irs >= 0 ? '+' : ''}{item.irs.toFixed(2)}%
-                                </td>
-                                <td className="text-text-tertiary">{item.relVol.toFixed(2)}x</td>
-                                <td className="text-text-tertiary">{item.adr.toFixed(1)}%</td>
-                                <td className="text-text-tertiary">{item.gap.toFixed(2)}%</td>
-                                <td className="text-right">
-                                   <span className={`indicator-tag p-1 px-3 ${item.direction === '+' ? 'indicator-up' : item.direction === '-' ? 'indicator-down' : 'bg-border-dim text-text-tertiary'}`}>
-                                      {item.direction === '+' ? 'BULL' : item.direction === '-' ? 'BEAR' : 'NEUT'}
-                                   </span>
-                                </td>
-                             </tr>
-                           ))}
+                          {dashboardData.elite10.map((item) => (
+                            <tr key={item.symbol}>
+                              <td className="font-bold text-white">{item.symbol}</td>
+                              <td className="text-text-secondary font-bold">{item.ltp.toLocaleString()}</td>
+                              <td className={`font-bold ${item.irs >= 0 ? 'text-brand-primary' : 'text-brand-secondary'}`}>
+                                {item.irs >= 0 ? '+' : ''}{item.irs.toFixed(2)}%
+                              </td>
+                              <td className="text-text-tertiary">{item.relVol.toFixed(2)}x</td>
+                              <td className="text-text-tertiary">{item.adr.toFixed(1)}%</td>
+                              <td className="text-text-tertiary">{item.gap.toFixed(2)}%</td>
+                              <td className="text-right">
+                                <span className={`indicator-tag p-1 px-3 ${item.direction === '+' ? 'indicator-up' : item.direction === '-' ? 'indicator-down' : 'bg-border-dim text-text-tertiary'}`}>
+                                  {item.direction === '+' ? 'BULL' : item.direction === '-' ? 'BEAR' : 'NEUT'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -603,31 +603,31 @@ function App() {
               <div className="content-grid">
                 {/* Global Policy Toggles */}
                 <div className="col-span-full pro-card flex flex-col">
-                   <div className="terminal-card-header">
-                      <div className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
-                      <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest">Global Execution Policy</span>
-                   </div>
-                   <div className="p-8 flex flex-wrap gap-12 items-center justify-around bg-gradient-to-r from-bg-surface to-transparent">
-                      {[
-                        { label: 'Sniper (Continuation)', field: 'sniperEnabled', val: config.toggles.sniperEnabled },
-                        { label: 'Income (Reversal)', field: 'reversalEnabled', val: config.toggles.reversalEnabled },
-                        { label: 'Automated Execution', field: 'autoTrading', val: config.toggles.autoTrading }
-                      ].map((t) => (
-                        <div key={t.field} className="flex items-center gap-6">
-                          <span className="text-xs font-bold uppercase tracking-widest text-text-secondary">{t.label}</span>
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={t.val}
-                              onChange={() => updateConfigField('toggles', t.field as any, !t.val)}
-                            />
-                            <span className="toggle-track" aria-hidden="true">
-                              <span className="toggle-thumb" />
-                            </span>
-                          </label>
-                        </div>
-                      ))}
-                   </div>
+                  <div className="terminal-card-header">
+                    <div className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
+                    <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest">Global Execution Policy</span>
+                  </div>
+                  <div className="p-8 flex flex-wrap gap-12 items-center justify-around bg-gradient-to-r from-bg-surface to-transparent">
+                    {[
+                      { label: 'Sniper (Continuation)', field: 'sniperEnabled', val: config.toggles.sniperEnabled },
+                      { label: 'Income (Reversal)', field: 'reversalEnabled', val: config.toggles.reversalEnabled },
+                      { label: 'Automated Execution', field: 'autoTrading', val: config.toggles.autoTrading }
+                    ].map((t) => (
+                      <div key={t.field} className="flex items-center gap-6">
+                        <span className="text-xs font-bold uppercase tracking-widest text-text-secondary">{t.label}</span>
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={t.val}
+                            onChange={() => updateConfigField('toggles', t.field as any, !t.val)}
+                          />
+                          <span className="toggle-track" aria-hidden="true">
+                            <span className="toggle-thumb" />
+                          </span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Configuration Blocks */}
@@ -646,11 +646,11 @@ function App() {
                       ].map(f => (
                         <div key={f.field} className="col-span-2 lg:col-span-1">
                           <label className="text-[10px] font-bold text-text-tertiary block mb-1 uppercase tracking-widest">{f.label}</label>
-                          <input 
-                            type="number" step={f.step} 
+                          <input
+                            type="number" step={f.step}
                             value={(config as any)[f.section][f.field]}
                             onChange={(e) => updateConfigField(f.section as any, f.field, parseFloat(e.target.value))}
-                            className="w-full bg-black/40 border border-border-mid p-3 rounded-lg font-mono text-base focus:border-brand-primary outline-none transition-all" 
+                            className="w-full bg-black/40 border border-border-mid p-3 rounded-lg font-mono text-base focus:border-brand-primary outline-none transition-all"
                           />
                         </div>
                       ))}
@@ -673,11 +673,11 @@ function App() {
                       ].map(f => (
                         <div key={f.field} className="col-span-2 lg:col-span-1">
                           <label className="text-[10px] font-bold text-text-tertiary block mb-1 uppercase tracking-widest">{f.label}</label>
-                          <input 
-                            type="number" step={f.step} 
+                          <input
+                            type="number" step={f.step}
                             value={(config as any)[f.section][f.field]}
                             onChange={(e) => updateConfigField(f.section as any, f.field, parseFloat(e.target.value))}
-                            className="w-full bg-black/40 border border-border-mid p-3 rounded-lg font-mono text-base focus:border-brand-secondary outline-none transition-all" 
+                            className="w-full bg-black/40 border border-border-mid p-3 rounded-lg font-mono text-base focus:border-brand-secondary outline-none transition-all"
                           />
                         </div>
                       ))}
@@ -686,7 +686,7 @@ function App() {
                 </div>
               </div>
             )}
-            
+
             {activeTab === 'logs' && (
               <div className="flex flex-col gap-6">
                 {/* Search & Aggregates */}
@@ -694,9 +694,9 @@ function App() {
                   <div className="flex flex-col w-full">
                     <div className="flex flex-row flex-wrap gap-3 items-center py-1">
                       <div className="relative w-full lg:w-96">
-                        <input 
-                          type="text" 
-                          placeholder="Filter by stock (symbol)..." 
+                        <input
+                          type="text"
+                          placeholder="Filter by stock (symbol)..."
                           value={filterStock}
                           onChange={(e) => setFilterStock(e.target.value)}
                           className="w-full bg-black/30 border border-border-mid p-3 pl-10 rounded-xl focus:border-brand-primary outline-none"
@@ -762,63 +762,63 @@ function App() {
                     </div>
                   </div>
                   <div className="flex gap-8 pr-4 mt-4 xl:mt-0">
-                     <div className="text-center">
-                        <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-1">Total Signals</p>
-                        <p className="text-3xl font-mono font-bold">{tradeLogs.length}</p>
-                     </div>
-                     <div className="text-center">
-                        <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-1">Performance</p>
-                        <p className="text-3xl font-mono font-bold text-brand-primary">+8.42%</p>
-                     </div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-1">Total Signals</p>
+                      <p className="text-3xl font-mono font-bold">{tradeLogs.length}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-1">Performance</p>
+                      <p className="text-3xl font-mono font-bold text-brand-primary">+8.42%</p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Audit Table */}
                 <div className="pro-card">
-                   <div className="terminal-table-container">
-                      <table className="terminal-table">
-                        <thead>
-                           <tr>
-                              <th>Timestamp & Asset</th>
-                              <th>Strategy</th>
-                              <th>Entry</th>
-                              <th>Target</th>
-                              <th>Stop</th>
-                              <th className="text-right">Return</th>
-                           </tr>
-                        </thead>
-                        <tbody className="font-mono text-sm">
-                           {filteredLogs.map((log) => (
-                             <tr key={log._id}>
-                                <td>
-                                   <p className="font-bold text-white">{log.symbol}</p>
-                                   <p className="text-[10px] text-text-tertiary">{new Date(log.date).toLocaleDateString()}</p>
-                                </td>
-                                <td>
-                                   <span className={`indicator-tag ${log.type === 'REVERSAL' ? 'indicator-down' : 'indicator-up'}`}>
-                                      {log.type}
-                                   </span>
-                                </td>
-                                <td className="text-text-secondary font-bold">{log.entryPrice.toLocaleString()}</td>
-                                <td className="text-brand-primary opacity-60">{log.takeProfit.toLocaleString()}</td>
-                                <td className="text-brand-secondary opacity-60">{log.stopLoss.toLocaleString()}</td>
-                                <td className="text-right">
-                                   {log.status === 'OPEN' ? (
-                                      <span className="text-brand-accent animate-pulse font-bold">LIVE</span>
-                                   ) : (
-                                      <span className={`font-bold ${typeof log.pnlPercentage === 'number' && log.pnlPercentage < 0 ? 'text-brand-secondary' : 'text-brand-primary'}`}>
-                                        {typeof log.pnlPercentage === 'number' ? `${log.pnlPercentage >= 0 ? '+' : ''}${log.pnlPercentage.toFixed(2)}%` : '--'}
-                                      </span>
-                                   )}
-                                </td>
-                             </tr>
-                           ))}
-                        </tbody>
-                      </table>
-                      {filteredLogs.length === 0 && (
-                        <div className="p-20 text-center text-text-tertiary italic">No archival records found matching criteria.</div>
-                      )}
-                   </div>
+                  <div className="terminal-table-container">
+                    <table className="terminal-table">
+                      <thead>
+                        <tr>
+                          <th>Timestamp & Asset</th>
+                          <th>Strategy</th>
+                          <th>Entry</th>
+                          <th>Target</th>
+                          <th>Stop</th>
+                          <th className="text-right">Return</th>
+                        </tr>
+                      </thead>
+                      <tbody className="font-mono text-sm">
+                        {filteredLogs.map((log) => (
+                          <tr key={log._id}>
+                            <td>
+                              <p className="font-bold text-white">{log.symbol}</p>
+                              <p className="text-[10px] text-text-tertiary">{new Date(log.date).toLocaleDateString()}</p>
+                            </td>
+                            <td>
+                              <span className={`indicator-tag ${log.type === 'REVERSAL' ? 'indicator-down' : 'indicator-up'}`}>
+                                {log.type}
+                              </span>
+                            </td>
+                            <td className="text-text-secondary font-bold">{log.entryPrice.toLocaleString()}</td>
+                            <td className="text-brand-primary opacity-60">{log.takeProfit.toLocaleString()}</td>
+                            <td className="text-brand-secondary opacity-60">{log.stopLoss.toLocaleString()}</td>
+                            <td className="text-right">
+                              {log.status === 'OPEN' ? (
+                                <span className="text-brand-accent animate-pulse font-bold">LIVE</span>
+                              ) : (
+                                <span className={`font-bold ${typeof log.pnlPercentage === 'number' && log.pnlPercentage < 0 ? 'text-brand-secondary' : 'text-brand-primary'}`}>
+                                  {typeof log.pnlPercentage === 'number' ? `${log.pnlPercentage >= 0 ? '+' : ''}${log.pnlPercentage.toFixed(2)}%` : '--'}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {filteredLogs.length === 0 && (
+                      <div className="p-20 text-center text-text-tertiary italic">No archival records found matching criteria.</div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
