@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Layout, Zap, Settings, List, Activity, Power, RefreshCw, Key, Menu, X, Loader2 } from 'lucide-react';
+import { Layout, Zap, Settings, List, Activity, Power, RefreshCw, Key, Menu, X, Loader2, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dashboardService, configService, authService } from './services/api';
 import * as XLSX from 'xlsx';
@@ -42,7 +42,6 @@ const DashboardHeader = ({
   activeTab,
   nifty,
   onAction,
-  onLogout,
   currentUser,
   isLoading,
   activeAction,
@@ -51,7 +50,6 @@ const DashboardHeader = ({
   activeTab: string;
   nifty: NiftyData | null;
   onAction: (action: string) => void;
-  onLogout: () => void;
   currentUser: string | null;
   isLoading: boolean;
   activeAction: string | null;
@@ -59,7 +57,7 @@ const DashboardHeader = ({
 }) => {
   return (
     <div className="pro-card dashboard-header mb-12">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 pb-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 pb-4 border-b border-white/5">
         <div className="flex flex-col gap-1 w-full md:w-auto">
           <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">
             {activeTab === 'dashboard' && 'Terminal'}
@@ -72,7 +70,7 @@ const DashboardHeader = ({
         </div>
 
         <div className="flex flex-col items-start md:items-end gap-4 w-full md:w-auto">
-          <div className="flex flex-row flex-wrap items-center gap-2 w-full md:justify-end">
+          <div className="grid grid-cols-2 sm:flex sm:flex-row flex-wrap items-center gap-2 w-full md:justify-end">
             {activeTab === 'dashboard' && (
               <>
                 <button
@@ -109,15 +107,6 @@ const DashboardHeader = ({
                   {activeAction === 'rank' ? <Loader2 size={14} className="animate-spin-custom text-black" /> : <Zap size={14} />}
                   <span>Refresh Elite 10</span>
                 </button>
-
-                <div className="h-8 w-px bg-white/5 mx-1" />
-
-                <button
-                  onClick={onLogout}
-                  className="action-btn text-text-tertiary border-white/5 hover:text-brand-secondary hover:bg-brand-secondary/10"
-                >
-                  <X size={14} /> <span>LOGOUT</span>
-                </button>
               </>
             )}
 
@@ -133,10 +122,9 @@ const DashboardHeader = ({
             )}
           </div>
 
-          {/* Status Label (Responsive Margin) */}
-          <div className="h-6 flex items-center justify-end w-full mt-2 md:mt-4">
+          <div className="h-6 flex items-center justify-end w-full mt-2 md:mt-1">
             <AnimatePresence mode="wait">
-              {isLoading && (
+              {(isLoading || activeAction) && (
                 <motion.div
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -166,8 +154,7 @@ const DashboardHeader = ({
         </div>
       </div>
 
-
-      <div className="status-bar flex flex-col sm:flex-row gap-4">
+      <div className="status-bar flex flex-col sm:flex-row gap-4 mt-6">
         <div className="nifty-ticker w-full sm:w-auto">
           <Activity className={nifty && nifty.change >= 0 ? 'text-brand-primary' : 'text-brand-secondary'} size={20} />
           <div className="flex flex-col">
@@ -437,6 +424,15 @@ function App() {
               <span className="capitalize">{tab}</span>
             </button>
           ))}
+          <div className="h-4 w-px bg-white/10 mx-2" />
+          <button
+            onClick={handleLogout}
+            className="nav-btn text-text-tertiary hover:text-brand-secondary transition-colors relative"
+            title="Logout"
+          >
+            <div className={`w-2 h-2 rounded-full absolute -top-1 -right-1 ${isAuthed ? 'bg-brand-primary' : 'bg-brand-secondary'} shadow-[0_0_8px_rgba(0,0,0,0.5)]`} />
+            <LogOut size={18} />
+          </button>
         </div>
       </nav>
 
@@ -452,6 +448,14 @@ function App() {
           <div className="mobile-nav-title">
             <span className="capitalize">{activeTab}</span>
           </div>
+          <div className="flex-1" />
+          <button
+            onClick={handleLogout}
+            className="p-2 text-text-tertiary hover:text-brand-secondary transition-colors relative mr-2"
+          >
+            <div className={`w-1.5 h-1.5 rounded-full absolute top-1 right-1 ${isAuthed ? 'bg-brand-primary' : 'bg-brand-secondary'}`} />
+            <LogOut size={18} />
+          </button>
         </div>
 
         {isMobileNavOpen && (
@@ -481,7 +485,6 @@ function App() {
         activeTab={activeTab}
         nifty={dashboardData.nifty}
         onAction={handleAction}
-        onLogout={handleLogout}
         currentUser={currentUser}
         isLoading={isLoading}
         activeAction={activeAction}
