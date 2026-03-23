@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Layout, Zap, Settings, List, Activity, Power, RefreshCw, Key, Menu, X } from 'lucide-react';
+import { Layout, Zap, Settings, List, Activity, Power, RefreshCw, Key, Menu, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dashboardService, configService, authService } from './services/api';
 import * as XLSX from 'xlsx';
@@ -66,32 +66,11 @@ const DashboardHeader = ({
             {activeTab === 'settings' && 'Config'}
             {activeTab === 'logs' && 'Audit'}
           </h1>
-          <div className="flex items-center gap-3">
-             <p className="text-text-tertiary text-[10px] font-bold tracking-[0.3em] uppercase opacity-60">Elite 10 Quant Workstation • SECURE SESSION</p>
-             {isLoading && (
-               <div className="flex items-center gap-2 px-3 py-1 bg-brand-primary/10 border border-brand-primary/20 rounded-full overflow-hidden">
-                 <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
-                 <div className="h-[14px] overflow-hidden relative min-w-[200px]">
-                   <AnimatePresence mode="wait">
-                     <motion.p
-                        key={lastLog}
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -20, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        className="text-[9px] font-mono font-bold text-brand-primary uppercase truncate absolute inset-0"
-                     >
-                        {lastLog}
-                     </motion.p>
-                   </AnimatePresence>
-                 </div>
-               </div>
-             )}
-          </div>
+          <p className="text-text-tertiary text-[10px] font-bold tracking-[0.3em] uppercase opacity-60">Elite 10 Quant Workstation • SECURE SESSION</p>
         </div>
         
-        <div className="flex flex-col items-end gap-4">
-          <div className="flex flex-row flex-wrap gap-2">
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex flex-row flex-wrap items-center gap-2">
             {activeTab === 'dashboard' && (
               <>
                 <button 
@@ -99,7 +78,7 @@ const DashboardHeader = ({
                   disabled={isLoading}
                   className={`action-btn ${activeAction === 'login' ? 'active' : ''} ${isLoading && activeAction !== 'login' ? 'opacity-20 grayscale' : ''}`}
                 >
-                  {activeAction === 'login' ? <RefreshCw size={14} className="animate-spin" /> : <Power size={14} />} 
+                  {activeAction === 'login' ? <Loader2 size={14} className="animate-spin text-brand-primary" /> : <Power size={14} />} 
                   <span>AUTH</span>
                 </button>
                 <button 
@@ -108,7 +87,7 @@ const DashboardHeader = ({
                   className={`action-btn ${activeAction === 'sync' ? 'active' : ''} ${isLoading && activeAction !== 'sync' ? 'opacity-20 grayscale' : ''}`}
                   title="Setup and map symbols (Run once)"
                 >
-                  {activeAction === 'sync' ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />} 
+                  {activeAction === 'sync' ? <Loader2 size={14} className="animate-spin text-brand-primary" /> : <RefreshCw size={14} />} 
                   <span>Sync Symbols</span>
                 </button>
                 <button 
@@ -117,23 +96,25 @@ const DashboardHeader = ({
                   className={`action-btn ${activeAction === 'syncData' ? 'active' : ''} ${isLoading && activeAction !== 'syncData' ? 'opacity-20 grayscale' : ''}`}
                   title="Sync local price data for all symbols"
                 >
-                  {activeAction === 'syncData' ? <RefreshCw size={14} className="animate-spin" /> : <Activity size={14} />} 
+                  {activeAction === 'syncData' ? <Loader2 size={14} className="animate-spin text-brand-primary" /> : <Activity size={14} />} 
                   <span>Sync Data</span>
                 </button>
                 <button 
                   onClick={() => onAction('rank')} 
                   disabled={isLoading}
-                  className={`action-btn action-btn-primary ${activeAction === 'rank' ? 'animate-pulse' : ''} ${isLoading && activeAction !== 'rank' ? 'opacity-20 grayscale' : ''}`}
+                  className={`action-btn action-btn-primary ${activeAction === 'rank' ? 'active' : ''} ${isLoading && activeAction !== 'rank' ? 'opacity-20 grayscale' : ''}`}
                 >
-                  {activeAction === 'rank' ? <RefreshCw size={14} className="animate-spin" /> : <Zap size={14} />} 
+                  {activeAction === 'rank' ? <Loader2 size={14} className="animate-spin text-black" /> : <Zap size={14} />} 
                   <span>Refresh Elite 10</span>
                 </button>
-                <div className="w-[1px] h-10 bg-white/5 mx-2" />
+
+                <div className="h-8 w-px bg-white/5 mx-1" />
+
                 <button 
                   onClick={onLogout}
-                  className="action-btn text-text-tertiary border-white/5 hover:bg-brand-secondary/10 hover:text-brand-secondary hover:border-brand-secondary/20"
+                  className="action-btn text-text-tertiary border-white/5 hover:text-brand-secondary hover:bg-brand-secondary/10"
                 >
-                  <X size={14} /> <span>LOGOUT</span>
+                   <X size={14} /> <span>LOGOUT</span>
                 </button>
               </>
             )}
@@ -149,8 +130,39 @@ const DashboardHeader = ({
               </>
             )}
           </div>
+
+          {/* Repositioned Status Label (Below Buttons) */}
+          <div className="h-6 flex items-center justify-end w-full">
+            <AnimatePresence mode="wait">
+              {isLoading && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="flex items-center gap-2 px-3 py-1 bg-brand-primary/10 border border-brand-primary/20 rounded-full"
+                >
+                  <span className="w-1 h-1 rounded-full bg-brand-primary animate-pulse" />
+                  <div className="h-[12px] overflow-hidden relative min-w-[220px]">
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={lastLog}
+                        initial={{ y: 15, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -15, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="text-[8px] font-mono font-bold text-brand-primary uppercase truncate absolute inset-0 text-right"
+                      >
+                        {lastLog}
+                      </motion.p>
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
+
       
       <div className="status-bar">
         <div className="nifty-ticker">
