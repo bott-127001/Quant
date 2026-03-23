@@ -133,8 +133,8 @@ const DashboardHeader = ({
             )}
           </div>
 
-          {/* Repositioned Status Label (Below Buttons) */}
-          <div className="h-6 flex items-center justify-end w-full mt-4">
+          {/* Status Label (Responsive Margin) */}
+          <div className="h-6 flex items-center justify-end w-full mt-2 md:mt-4">
             <AnimatePresence mode="wait">
               {isLoading && (
                 <motion.div
@@ -144,7 +144,7 @@ const DashboardHeader = ({
                   className="flex items-center gap-2 px-3 py-1 bg-brand-primary/5 rounded-full"
                 >
                   <span className="w-1 h-1 rounded-full bg-brand-primary animate-pulse" />
-                  <div className="h-[10px] overflow-hidden relative w-full sm:w-[500px] flex justify-end">
+                  <div className="h-[10px] overflow-hidden relative w-full max-w-[calc(100vw-60px)] sm:w-[500px] flex justify-end">
                     <AnimatePresence mode="wait">
                       <motion.p
                         key={lastLog}
@@ -152,8 +152,8 @@ const DashboardHeader = ({
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -15, opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        style={{ whiteSpace: 'nowrap' }}
-                        className="text-[5px] font-mono font-bold text-brand-primary uppercase text-right"
+                        style={{ whiteSpace: 'nowrap', fontSize: '7px' }}
+                        className="text-[7px] font-mono font-bold text-brand-primary uppercase text-right truncate"
                       >
                         {lastLog}
                       </motion.p>
