@@ -142,7 +142,7 @@ const DashboardHeader = ({
                   className="flex items-center gap-2 px-3 py-1 bg-brand-primary/10 border border-brand-primary/20 rounded-full"
                 >
                   <span className="w-1 h-1 rounded-full bg-brand-primary animate-pulse" />
-                  <div className="h-[12px] overflow-hidden relative min-w-[220px]">
+                  <div className="h-[12px] overflow-hidden relative w-full sm:w-[500px]">
                     <AnimatePresence mode="wait">
                       <motion.p
                         key={lastLog}
