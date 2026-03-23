@@ -15,7 +15,21 @@ import RankingService from './services/RankingService';
 import AuthService from './services/AuthService';
 import MarketDataService from './services/MarketDataService';
 
+import LogService from './services/LogService';
+
 dotenv.config();
+
+// Global Intercept console.log to buffer for frontend display
+const originalLog = console.log;
+console.log = (...args) => {
+    LogService.log(args.map(String).join(' '));
+    originalLog(...args);
+};
+const originalError = console.error;
+console.error = (...args) => {
+    LogService.log(`❌ ERROR: ${args.map(String).join(' ')}`);
+    originalError(...args);
+};
 
 // Connect to Database
 connectDB().then(() => {
@@ -41,6 +55,11 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// New: Live Log Sharing Endpoint
+app.get('/api/logs', (req, res) => {
+    res.json({ logs: LogService.getLogs() });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);

@@ -32,6 +32,10 @@ export const dashboardService = {
         const response = await api.get('/market-data/calculate-ranking');
         return response.data;
     },
+    getLiveLogs: async () => {
+        const response = await axios.get(`${API_BASE_URL}/logs`, { withCredentials: true });
+        return response.data;
+    },
     manualLogin: async () => {
         const response = await api.get('/auth/login');
         return response.data;

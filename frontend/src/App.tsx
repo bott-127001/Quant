@@ -42,12 +42,18 @@ const DashboardHeader = ({
   activeTab, 
   nifty, 
   onAction,
-  currentUser
+  currentUser,
+  isLoading,
+  activeAction,
+  liveLogs
 }: { 
   activeTab: string; 
   nifty: NiftyData | null;
   onAction: (action: string) => void;
   currentUser: string | null;
+  isLoading: boolean;
+  activeAction: string | null;
+  liveLogs: string[];
 }) => {
   return (
     <div className="pro-card dashboard-header mb-12">
@@ -61,33 +67,77 @@ const DashboardHeader = ({
           <p className="text-text-tertiary text-[10px] font-bold tracking-[0.3em] uppercase opacity-60">Elite 10 Quant Workstation • SECURE SESSION</p>
         </div>
         
-        <div className="flex flex-row flex-wrap gap-2">
-          {activeTab === 'dashboard' && (
-            <>
-              <button onClick={() => onAction('login')} className="action-btn">
-                <Power size={14} /> <span>AUTH</span>
-              </button>
-              <button onClick={() => onAction('sync')} className="action-btn" title="Setup and map symbols (Run once)">
-                <RefreshCw size={14} /> <span>Sync Symbols</span>
-              </button>
-              <button onClick={() => onAction('syncData')} className="action-btn" title="Sync local price data for all symbols">
-                <Activity size={14} /> <span>Sync Data</span>
-              </button>
-              <button onClick={() => onAction('rank')} className="action-btn action-btn-primary">
-                <Zap size={14} /> <span>Refresh Elite 10</span>
-              </button>
-            </>
-          )}
+        <div className="flex flex-col items-end gap-4">
+          <div className="flex flex-row flex-wrap gap-2">
+            {activeTab === 'dashboard' && (
+              <>
+                <button 
+                  onClick={() => onAction('login')} 
+                  disabled={isLoading}
+                  className={`action-btn ${activeAction === 'login' ? 'active' : ''} ${isLoading && activeAction !== 'login' ? 'opacity-20 grayscale' : ''}`}
+                >
+                  {activeAction === 'login' ? <RefreshCw size={14} className="animate-spin" /> : <Power size={14} />} 
+                  <span>AUTH</span>
+                </button>
+                <button 
+                  onClick={() => onAction('sync')} 
+                  disabled={isLoading}
+                  className={`action-btn ${activeAction === 'sync' ? 'active' : ''} ${isLoading && activeAction !== 'sync' ? 'opacity-20 grayscale' : ''}`}
+                  title="Setup and map symbols (Run once)"
+                >
+                  {activeAction === 'sync' ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />} 
+                  <span>Sync Symbols</span>
+                </button>
+                <button 
+                  onClick={() => onAction('syncData')} 
+                  disabled={isLoading}
+                  className={`action-btn ${activeAction === 'syncData' ? 'active' : ''} ${isLoading && activeAction !== 'syncData' ? 'opacity-20 grayscale' : ''}`}
+                  title="Sync local price data for all symbols"
+                >
+                  {activeAction === 'syncData' ? <RefreshCw size={14} className="animate-spin" /> : <Activity size={14} />} 
+                  <span>Sync Data</span>
+                </button>
+                <button 
+                  onClick={() => onAction('rank')} 
+                  disabled={isLoading}
+                  className={`action-btn action-btn-primary ${activeAction === 'rank' ? 'animate-pulse' : ''} ${isLoading && activeAction !== 'rank' ? 'opacity-20 grayscale' : ''}`}
+                >
+                  {activeAction === 'rank' ? <RefreshCw size={14} className="animate-spin" /> : <Zap size={14} />} 
+                  <span>Refresh Elite 10</span>
+                </button>
+              </>
+            )}
 
-          {activeTab === 'settings' && (
-            <>
-               <button onClick={() => onAction('nuke')} className="action-btn text-brand-secondary border-brand-secondary/30">
-                <Key size={14} /> <span>PURGE ACCESS</span>
-              </button>
-              <button onClick={() => onAction('save')} className="action-btn action-btn-primary">
-                <span>COMMIT CHANGES</span>
-              </button>
-            </>
+            {activeTab === 'settings' && (
+              <>
+                <button onClick={() => onAction('nuke')} className="action-btn text-brand-secondary border-brand-secondary/30">
+                  <Key size={14} /> <span>PURGE ACCESS</span>
+                </button>
+                <button onClick={() => onAction('save')} className="action-btn action-btn-primary">
+                  <span>COMMIT CHANGES</span>
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Inline Log Monitor (Only visible when busy) */}
+          {isLoading && (
+            <div className="w-full md:w-96 bg-black/40 border border-brand-primary/10 rounded-lg p-3 font-mono text-[10px] shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center justify-between mb-2 pb-1 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
+                  <span className="text-brand-primary uppercase tracking-widest text-[8px] font-black">Process Hub :: Streaming</span>
+                </div>
+                <span className="text-text-tertiary opacity-40">AUTO_SCROLL_ON</span>
+              </div>
+              <div className="max-h-24 overflow-y-auto flex flex-col gap-1 pr-1 custom-scrollbar">
+                {liveLogs.slice(-5).map((log, i) => (
+                  <p key={i} className="text-text-secondary truncate">
+                    <span className="text-brand-primary opacity-30 mr-1 opacity-60">❯</span> {log}
+                  </p>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -148,6 +198,8 @@ function App() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [liveLogs, setLiveLogs] = useState<string[]>([]);
+  const [activeAction, setActiveAction] = useState<string | null>(null);
 
   // Data Polling & Initial Fetch
   const fetchData = async () => {
@@ -201,8 +253,25 @@ function App() {
     };
   }, []);
 
+  // Poll logs only when loading
+  useEffect(() => {
+    let interval: number | undefined;
+    if (isLoading) {
+      interval = window.setInterval(async () => {
+        try {
+          const res = await dashboardService.getLiveLogs();
+          setLiveLogs(res.logs);
+        } catch {}
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    }
+  }, [isLoading]);
+
   const handleAction = async (action: string) => {
     setIsLoading(true);
+    setActiveAction(action);
     try {
       if (action === 'login') await dashboardService.manualLogin();
       if (action === 'sync') {
@@ -230,6 +299,7 @@ function App() {
       alert(`Action failed.`);
     } finally {
       setIsLoading(false);
+      setActiveAction(null);
     }
   };
 
@@ -304,13 +374,7 @@ function App() {
   }
 
   return (
-    <div className={`main-wrapper ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
-      {isLoading && (
-        <div className="loading-overlay">
-          <div className="loader-spinner" />
-          <p className="text-[10px] font-mono font-bold tracking-[0.4em] text-brand-primary uppercase animate-pulse">Request Processing</p>
-        </div>
-      )}
+    <div className={`main-wrapper`}>
       {/* Navigation */}
       <nav className="top-nav-bar desktop-only">
         <div className="nav-pill-container">
@@ -374,6 +438,9 @@ function App() {
         nifty={dashboardData.nifty} 
         onAction={handleAction} 
         currentUser={currentUser}
+        isLoading={isLoading}
+        activeAction={activeAction}
+        liveLogs={liveLogs}
       />
 
       <main>
