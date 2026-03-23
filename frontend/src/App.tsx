@@ -142,7 +142,7 @@ const DashboardHeader = ({
                   className="flex items-center gap-2 px-3 py-1 bg-brand-primary/10 border border-brand-primary/20 rounded-full"
                 >
                   <span className="w-1 h-1 rounded-full bg-brand-primary animate-pulse" />
-                  <div className="h-[12px] overflow-hidden relative w-full sm:w-[500px]">
+                  <div className="h-[12px] overflow-hidden relative w-[600px] flex justify-end">
                     <AnimatePresence mode="wait">
                       <motion.p
                         key={lastLog}
@@ -150,7 +150,8 @@ const DashboardHeader = ({
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -15, opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="text-[8px] font-mono font-bold text-brand-primary uppercase truncate whitespace-nowrap absolute inset-0 text-right"
+                        style={{ whiteSpace: 'nowrap' }}
+                        className="text-[8px] font-mono font-bold text-brand-primary uppercase text-right"
                       >
                         {lastLog}
                       </motion.p>
