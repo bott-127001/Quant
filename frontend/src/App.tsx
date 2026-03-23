@@ -42,29 +42,52 @@ const DashboardHeader = ({
   activeTab, 
   nifty, 
   onAction,
+  onLogout,
   currentUser,
   isLoading,
   activeAction,
-  liveLogs
+  lastLog
 }: { 
   activeTab: string; 
   nifty: NiftyData | null;
   onAction: (action: string) => void;
+  onLogout: () => void;
   currentUser: string | null;
   isLoading: boolean;
   activeAction: string | null;
-  liveLogs: string[];
+  lastLog: string;
 }) => {
   return (
     <div className="pro-card dashboard-header mb-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 pb-4">
-        <div>
+        <div className="flex flex-col gap-2">
           <h1 className="text-6xl font-black tracking-tighter mb-1 text-white uppercase leading-none">
             {activeTab === 'dashboard' && 'Terminal'}
             {activeTab === 'settings' && 'Config'}
             {activeTab === 'logs' && 'Audit'}
           </h1>
-          <p className="text-text-tertiary text-[10px] font-bold tracking-[0.3em] uppercase opacity-60">Elite 10 Quant Workstation • SECURE SESSION</p>
+          <div className="flex items-center gap-3">
+             <p className="text-text-tertiary text-[10px] font-bold tracking-[0.3em] uppercase opacity-60">Elite 10 Quant Workstation • SECURE SESSION</p>
+             {isLoading && (
+               <div className="flex items-center gap-2 px-3 py-1 bg-brand-primary/10 border border-brand-primary/20 rounded-full overflow-hidden">
+                 <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
+                 <div className="h-[14px] overflow-hidden relative min-w-[200px]">
+                   <AnimatePresence mode="wait">
+                     <motion.p
+                        key={lastLog}
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -20, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="text-[9px] font-mono font-bold text-brand-primary uppercase truncate absolute inset-0"
+                     >
+                        {lastLog}
+                     </motion.p>
+                   </AnimatePresence>
+                 </div>
+               </div>
+             )}
+          </div>
         </div>
         
         <div className="flex flex-col items-end gap-4">
@@ -105,6 +128,13 @@ const DashboardHeader = ({
                   {activeAction === 'rank' ? <RefreshCw size={14} className="animate-spin" /> : <Zap size={14} />} 
                   <span>Refresh Elite 10</span>
                 </button>
+                <div className="w-[1px] h-10 bg-white/5 mx-2" />
+                <button 
+                  onClick={onLogout}
+                  className="action-btn text-text-tertiary border-white/5 hover:bg-brand-secondary/10 hover:text-brand-secondary hover:border-brand-secondary/20"
+                >
+                  <X size={14} /> <span>LOGOUT</span>
+                </button>
               </>
             )}
 
@@ -119,26 +149,6 @@ const DashboardHeader = ({
               </>
             )}
           </div>
-
-          {/* Inline Log Monitor (Only visible when busy) */}
-          {isLoading && (
-            <div className="w-full md:w-96 bg-black/40 border border-brand-primary/10 rounded-lg p-3 font-mono text-[10px] shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex items-center justify-between mb-2 pb-1 border-b border-white/5">
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
-                  <span className="text-brand-primary uppercase tracking-widest text-[8px] font-black">Process Hub :: Streaming</span>
-                </div>
-                <span className="text-text-tertiary opacity-40">AUTO_SCROLL_ON</span>
-              </div>
-              <div className="max-h-24 overflow-y-auto flex flex-col gap-1 pr-1 custom-scrollbar">
-                {liveLogs.slice(-5).map((log, i) => (
-                  <p key={i} className="text-text-secondary truncate">
-                    <span className="text-brand-primary opacity-30 mr-1 opacity-60">❯</span> {log}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
       
@@ -200,6 +210,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [liveLogs, setLiveLogs] = useState<string[]>([]);
   const [activeAction, setActiveAction] = useState<string | null>(null);
+  const [lastLog, setLastLog] = useState<string>('System Ready');
 
   // Data Polling & Initial Fetch
   const fetchData = async () => {
@@ -260,6 +271,12 @@ function App() {
       interval = window.setInterval(async () => {
         try {
           const res = await dashboardService.getLiveLogs();
+          if (res.logs && res.logs.length > 0) {
+            const latest = res.logs[res.logs.length - 1];
+            if (latest !== lastLog) {
+              setLastLog(latest);
+            }
+          }
           setLiveLogs(res.logs);
         } catch {}
       }, 1000);
@@ -267,7 +284,17 @@ function App() {
     return () => {
       if (interval) clearInterval(interval);
     }
-  }, [isLoading]);
+  }, [isLoading, lastLog]);
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      setIsAuthed(false);
+      setCurrentUser(null);
+    } catch (err) {
+      alert('Logout failed');
+    }
+  };
 
   const handleAction = async (action: string) => {
     setIsLoading(true);
@@ -437,10 +464,11 @@ function App() {
         activeTab={activeTab} 
         nifty={dashboardData.nifty} 
         onAction={handleAction} 
+        onLogout={handleLogout}
         currentUser={currentUser}
         isLoading={isLoading}
         activeAction={activeAction}
-        liveLogs={liveLogs}
+        lastLog={lastLog}
       />
 
       <main>
