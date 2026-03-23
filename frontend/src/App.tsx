@@ -132,14 +132,14 @@ const DashboardHeader = ({
           </div>
 
           {/* Repositioned Status Label (Below Buttons) */}
-          <div className="h-6 flex items-center justify-end w-full">
+          <div className="h-6 flex items-center justify-end w-full mt-4">
             <AnimatePresence mode="wait">
               {isLoading && (
                 <motion.div
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
-                  className="flex items-center gap-2 px-3 py-1 bg-brand-primary/10 border border-brand-primary/20 rounded-full"
+                  className="flex items-center gap-2 px-3 py-1 bg-brand-primary/5 rounded-full"
                 >
                   <span className="w-1 h-1 rounded-full bg-brand-primary animate-pulse" />
                   <div className="h-[12px] overflow-hidden relative w-[600px] flex justify-end">
