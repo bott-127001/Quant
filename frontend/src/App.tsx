@@ -279,7 +279,7 @@ function App() {
   // Poll logs only when loading
   useEffect(() => {
     let interval: number | undefined;
-    if (isLoading) {
+    if (isLoading || activeAction) {
       interval = window.setInterval(async () => {
         try {
           const res = await dashboardService.getLiveLogs();
@@ -332,12 +332,16 @@ function App() {
         await configService.updateConfig(config);
         alert('Configuration synchronized.');
       }
-      fetchData();
     } catch (err) {
       alert(`Action failed.`);
-    } finally {
       setIsLoading(false);
       setActiveAction(null);
+    } finally {
+      // Don't clear for background actions immediately
+      if (action !== 'syncData') {
+        setIsLoading(false);
+        setActiveAction(null);
+      }
     }
   };
 
