@@ -60,17 +60,19 @@ const DashboardHeader = ({
   return (
     <div className="pro-card dashboard-header mb-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 pb-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-6xl font-black tracking-tighter mb-1 text-white uppercase leading-none">
+        <div className="flex flex-col gap-1 w-full md:w-auto">
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">
             {activeTab === 'dashboard' && 'Terminal'}
             {activeTab === 'settings' && 'Config'}
             {activeTab === 'logs' && 'Audit'}
           </h1>
-          <p className="text-text-tertiary text-[10px] font-bold tracking-[0.3em] uppercase opacity-60">Elite 10 Quant Workstation • SECURE SESSION</p>
+          <p className="text-text-tertiary text-[8px] md:text-[10px] font-bold tracking-[0.2em] md:tracking-[0.3em] uppercase opacity-60">
+            Elite 10 Quant Workstation • SECURE SESSION
+          </p>
         </div>
 
-        <div className="flex flex-col items-end gap-3">
-          <div className="flex flex-row flex-wrap items-center gap-2">
+        <div className="flex flex-col items-start md:items-end gap-4 w-full md:w-auto">
+          <div className="flex flex-row flex-wrap items-center gap-2 w-full md:justify-end">
             {activeTab === 'dashboard' && (
               <>
                 <button
@@ -142,7 +144,7 @@ const DashboardHeader = ({
                   className="flex items-center gap-2 px-3 py-1 bg-brand-primary/5 rounded-full"
                 >
                   <span className="w-1 h-1 rounded-full bg-brand-primary animate-pulse" />
-                  <div className="h-[12px] overflow-hidden relative w-[600px] flex justify-end">
+                  <div className="h-[10px] overflow-hidden relative w-full sm:w-[500px] flex justify-end">
                     <AnimatePresence mode="wait">
                       <motion.p
                         key={lastLog}
@@ -151,7 +153,7 @@ const DashboardHeader = ({
                         exit={{ y: -15, opacity: 0 }}
                         transition={{ duration: 0.3 }}
                         style={{ whiteSpace: 'nowrap' }}
-                        className="text-[8px] font-mono font-bold text-brand-primary uppercase text-right"
+                        className="text-[5px] font-mono font-bold text-brand-primary uppercase text-right"
                       >
                         {lastLog}
                       </motion.p>
@@ -165,8 +167,8 @@ const DashboardHeader = ({
       </div>
 
 
-      <div className="status-bar">
-        <div className="nifty-ticker">
+      <div className="status-bar flex flex-col sm:flex-row gap-4">
+        <div className="nifty-ticker w-full sm:w-auto">
           <Activity className={nifty && nifty.change >= 0 ? 'text-brand-primary' : 'text-brand-secondary'} size={20} />
           <div className="flex flex-col">
             <span className="text-[9px] font-black text-text-tertiary uppercase tracking-widest">NIFTY 50 INDEX</span>
@@ -179,7 +181,7 @@ const DashboardHeader = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-4 px-6 py-2 rounded-lg bg-black/20 border border-border-dim">
+        <div className="flex items-center gap-4 px-6 py-2 rounded-lg bg-black/20 border border-border-dim w-full sm:w-auto">
           <RefreshCw size={16} className="animate-spin-slow text-brand-primary" />
           <div className="flex flex-col">
             <span className="text-[9px] font-black text-text-tertiary uppercase tracking-widest">
