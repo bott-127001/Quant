@@ -208,7 +208,6 @@ function App() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
-  const [liveLogs, setLiveLogs] = useState<string[]>([]);
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [lastLog, setLastLog] = useState<string>('System Ready');
 
@@ -277,7 +276,6 @@ function App() {
               setLastLog(latest);
             }
           }
-          setLiveLogs(res.logs);
         } catch {}
       }, 1000);
     }
