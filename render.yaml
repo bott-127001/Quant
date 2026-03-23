@@ -25,4 +25,6 @@ services:
         sync: false # Set manually in Render Dashboard
       - key: UPSTOX_TOTP_SECRET
         sync: false # Set manually in Render Dashboard
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: ./ms-playwright
     healthCheckPath: /api/auth/me # Or some other health check route
