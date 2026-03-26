@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: quant-workstation
+    env: node
+    plan: free
+    region: singapore # Change to your preferred region (e.g., oregon)
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 5001
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false # Set manually in Render Dashboard
+      - key: UPSTOX_API_KEY
+        sync: false # Set manually in Render Dashboard
+      - key: UPSTOX_API_SECRET
+        sync: false # Set manually in Render Dashboard
+      - key: UPSTOX_REDIRECT_URI
+        sync: false # Set manually in Render Dashboard
+      - key: UPSTOX_USER_ID
+        sync: false # Set manually in Render Dashboard
+      - key: UPSTOX_PASSWORD
+        sync: false # Set manually in Render Dashboard
+      - key: UPSTOX_TOTP_SECRET
+        sync: false # Set manually in Render Dashboard
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: ./ms-playwright
+    healthCheckPath: /api/auth/me # Or some other health check route
