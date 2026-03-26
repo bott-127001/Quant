@@ -61,9 +61,12 @@ app.get('/api/logs', (req, res) => {
     res.json({ logs: LogService.getLogs() });
 });
 
-// Health Check for external pingers (keeps server awake)
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'UP', timestamp: new Date().toISOString() });
+// Integrated Health Check for Uptime Monitoring (Supports GET & HEAD)
+app.use('/health-check', (req, res) => {
+    if (req.method === 'HEAD') {
+        return res.status(200).end();
+    }
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Routes
