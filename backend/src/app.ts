@@ -61,6 +61,11 @@ app.get('/api/logs', (req, res) => {
     res.json({ logs: LogService.getLogs() });
 });
 
+// Health Check for external pingers (keeps server awake)
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'UP', timestamp: new Date().toISOString() });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/market-data', requireDashboardAuth, marketDataRoutes);
