@@ -46,6 +46,15 @@ connectDB().then(() => {
 
 const app = express();
 
+// 🟢 CRITICAL: Fastest possible response for Render Spin-up
+// Supports HEAD and GET methods. HEAD should be used by the pinger.
+app.all('/health-check', (req, res) => {
+    if (req.method === 'HEAD' || req.method === 'GET') {
+        return res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+    }
+    res.status(405).send('Method Not Allowed');
+});
+
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 
 // Middlewares
@@ -59,14 +68,6 @@ app.use(cookieParser());
 // New: Live Log Sharing Endpoint
 app.get('/api/logs', (req, res) => {
     res.json({ logs: LogService.getLogs() });
-});
-
-// Integrated Health Check for Uptime Monitoring (Supports GET & HEAD)
-app.use('/health-check', (req, res) => {
-    if (req.method === 'HEAD') {
-        return res.status(200).end();
-    }
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Routes
