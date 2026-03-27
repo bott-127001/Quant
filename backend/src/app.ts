@@ -37,6 +37,7 @@ connectDB().then(() => {
 
     // Start automated processes
     AuthService.startAutomatedLoginScheduler();      // 09:00 AM IST (P2)
+    AuthService.startCleanupScheduler();             // 04:30 PM IST (P10)
     RankingService.startAutomatedRanking();         // 08:45 AM IST (P4)
     MarketDataService.startRollingSyncScheduler();  // 04:00 PM IST (P3)
     IntradayService.startMarketHeartbeat();         // 09:15 AM - 03:30 PM IST (P5-8)
@@ -46,7 +47,6 @@ connectDB().then(() => {
 
 const app = express();
 
-// 🟢 CRITICAL: Fastest possible response for Render Spin-up
 // Supports HEAD and GET methods. HEAD should be used by the pinger.
 app.all('/health-check', (req, res) => {
     if (req.method === 'HEAD' || req.method === 'GET') {

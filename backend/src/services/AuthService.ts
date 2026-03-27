@@ -114,6 +114,19 @@ class AuthService {
     }
 
     /**
+     * Manual/Automated Cleanup: Clears access token from DB
+     */
+    public async clearSession() {
+        try {
+            console.log('--- Clearing Active Session (Daily Wipe) ---');
+            await Auth.deleteMany({});
+            console.log('Session cleared successfully.');
+        } catch (err: any) {
+            console.error('Session clearance failed:', err.message);
+        }
+    }
+
+    /**
      * Automated Scheduler: Runs daily at 09:00 AM IST (P2)
      */
     public startAutomatedLoginScheduler() {
@@ -123,6 +136,23 @@ class AuthService {
                 await this.performDailyLogin();
             } catch (err: any) {
                 console.error('Automated Login Failed:', err.message);
+            }
+        }, {
+            timezone: "Asia/Kolkata"
+        });
+    }
+
+    /**
+     * Automated Cleanup Scheduler: Runs daily at 04:30 PM IST
+     * This prepares the terminal for a cold start the next morning.
+     */
+    public startCleanupScheduler() {
+        console.log('--- Auth Cleanup Scheduler Started (16:30 IST) ---');
+        cron.schedule('30 16 * * 1-5', async () => {
+            try {
+                await this.clearSession();
+            } catch (err: any) {
+                console.error('Automated Cleanup Failed:', err.message);
             }
         }, {
             timezone: "Asia/Kolkata"
